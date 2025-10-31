@@ -1,6 +1,6 @@
-import { useFetch } from '../hooks/useFetch'
+import { useFetch } from '../../hooks/useFetch'
 import { useState } from 'react'
-import reactLogo from '../assets/react.svg'
+import reactLogo from '../../assets/react.svg'
 import viteLogo from '/vite.svg'
 import './DetallePelicula.css'
 

@@ -4,8 +4,8 @@ import './index.css'
 
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
-import Cartelera from './Cartelera/cartelera.jsx'
-import DetallePelicula from './DetallePelicula/DetallePelicula.jsx'; 
+import Cartelera from './PANTALLAS/Cartelera/cartelera.jsx'
+import DetallePelicula from './PANTALLAS/DetallePelicula/DetallePelicula.jsx'; 
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
