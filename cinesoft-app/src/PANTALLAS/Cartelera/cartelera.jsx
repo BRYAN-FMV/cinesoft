@@ -65,8 +65,8 @@ const Cartelera = () => {
                             <ul className="navbar-nav ms-auto">
                                 <li className="nav-item"><a className="nav-link" href="#peliculas-populares">Cartelera</a></li>
                                 <li className="nav-item"><a className="nav-link" href="#">Carrito</a></li>
-                                <li className="nav-item"><a className="nav-link" href="#">Login</a></li>
-                                <li className="nav-item"><a className="nav-link" href="#">Registro</a></li>
+                                <li className="nav-item"><Link className="nav-link" to="/login">Iniciar sesión</Link></li>
+                                <li className="nav-item"><Link className="nav-link" to="/register">Registro</Link></li>
                             </ul>
                         </div>
                     </div>
