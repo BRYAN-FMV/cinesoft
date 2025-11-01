@@ -116,3 +116,266 @@
 .sinopsis strong {
   color: #646cff;
 }
+
+
+/*(selección de días/horarios) */
+.detalle-container {
+  max-width: 1100px;
+  margin: 2rem auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items:flex-start;
+  color: #e6e6e6;
+}
+
+.navbar {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 1000;
+  background-color: #0d0d0d;
+  padding: 10px 20px;
+  box-shadow: 0 0 10px rgba(255, 77, 77, 0.3);
+}
+
+/* Logo centrado con estilo rojo neón */
+.logo {
+  color: #ff4d4d !important;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-shadow: 0 0 8px rgba(255, 77, 77, 0.6);
+  transition: transform 0.3s ease;
+}
+
+.logo:hover {
+  transform: scale(1.05);
+}
+
+/* Logo centrado en el navbar (mantener "CINESOFT" centrado) */
+.navbar .logo {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 50%;
+  transform-origin: center;
+  transform: translateX(-50%) translateY(-50%);
+  z-index: 1099;
+  /* mantener estilos previos */
+  color: #ff4d4d !important;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-shadow: 0 0 8px rgba(255, 77, 77, 0.6);
+  transition: transform 0.3s ease;
+}
+
+/* Ajuste para que el logo no sobresalga en pantallas pequeñas */
+@media (max-width: 576px) {
+  .navbar .logo {
+    position: static;
+    transform: none;
+    display: block;
+    margin: 0 auto;
+  }
+
+  /* botones absolute vuelven a flow para que no tapen el logo */
+  .navbar .container.align-items-center.d-flex > .me-3,
+  .navbar .container.align-items-center.d-flex .d-flex.ms-auto {
+    position: static;
+    transform: none;
+    right: auto;
+    left: auto;
+  }
+}
+
+.btn-link {
+  background-color: #1a0000; 
+  color: #ff4d4d !important; 
+  padding: 10px 18px;
+  border-radius: 8px;
+  text-decoration: none;
+  border: 1px solid #ff1a1a; 
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  box-shadow: 0 0 8px rgba(255, 77, 77, 0.4);
+  transition: all 0.25s ease;
+  display: inline-block;
+  margin-bottom: 1.5rem; 
+}
+
+.btn-link:hover {
+  background-color: #330000; 
+  color: #ff6666 !important;
+  border-color: #ff3333;
+  box-shadow: 0 0 14px rgba(255, 51, 51, 0.8);
+  transform: scale(1.05);
+}
+
+.icon-btn {
+  padding: 8px 12px;
+  font-size: 1.2rem;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.detalle-card {
+  width: 100%;
+  background: #141414;
+  border: 1px solid #262626;
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+  box-shadow: 0 10px 30px rgba(10,10,10,0.6);
+  margin-top: 70px;
+}
+
+/* Poster */
+.poster-section {
+  flex: 0 0 320px;
+  max-width: 360px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.poster-section img {
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  object-fit: cover;
+  box-shadow: 0 8px 25px rgba(100,108,255,0.12);
+  border: 1px solid rgba(100,108,255,0.06);
+}
+
+/* Info */
+.info-section {
+  flex: 1;
+  text-align: left;
+}
+
+/* Encabezados e información */
+.info-section h1 {
+  color: #d6170d;
+  margin-bottom: 0.5rem;
+  font-size: 1.6rem;
+}
+
+.info-section p {
+  color: #d4d4d4;
+}
+
+/* Selección de días */
+.days-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0.5rem 0 1rem 0;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.days-row .btn {
+  min-width: 110px;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  text-transform: none;
+}
+
+/* Horarios */
+.times-grid {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0.5rem 0 1rem 0;
+  align-items: center;
+}
+
+.times-grid .btn {
+  min-width: 86px;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+
+/* Horario seleccionado */
+.detalle-card .btn-success {
+  background: linear-gradient(90deg,#29a867,#2bb07a);
+  border-color: rgba(40,160,110,0.9);
+  color: #fff;
+}
+
+/* Estado de selección visual */
+.days-row .btn:focus,
+.times-grid .btn:focus {
+  outline: none;
+  box-shadow: 0 6px 18px rgba(100,108,255,0.12);
+}
+
+/* Texto seleccionado */
+.detalle-card .selected-summary {
+  margin-top: 0.5rem;
+  color: #cfcfff;
+}
+
+/* Posicionar correctamente elementos en el navbar */
+.navbar .container.align-items-center.d-flex {
+  position: relative; /* contenedor relativo para posicionamiento absoluto de botones */
+}
+
+/* BOTÓN ATRÁS: extremo izquierdo */
+.navbar .container.align-items-center.d-flex > .me-3 {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1100;
+}
+
+/* ICONO DE AUTH/REGISTRO: extremo derecho */
+.navbar .container.align-items-center.d-flex .d-flex.ms-auto {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1100;
+}
+
+/* Ajustes visuales para los botones del navbar (opcional, mantener legibilidad) */
+.navbar .container .btn-outline-light.btn-sm {
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+
+/* CENTRAR el botón "Reservar" dentro de la tarjeta de detalle */
+.detalle-card .info-section > div > .btn.btn-primary,
+.detalle-card .info-section .btn-primary {
+  display: inline-block;
+  margin: 18px auto 0;
+  /* forzar centrado en bloque */
+  left: 0;
+  right: 0;
+}
+
+/* Asegurar que el bloque padre permita centrar */
+.detalle-card .info-section > div {
+  text-align: center;
+}
+
+/* preserva comportamiento responsive */
+@media (max-width: 900px) {
+  .navbar .container.align-items-center.d-flex > .me-3,
+  .navbar .container.align-items-center.d-flex .d-flex.ms-auto {
+    position: static;
+    transform: none;
+    margin: 6px;
+  }
+  .detalle-card .info-section > div {
+    text-align: center;
+  }
+}
