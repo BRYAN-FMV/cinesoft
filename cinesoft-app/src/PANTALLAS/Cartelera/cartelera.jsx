@@ -67,13 +67,17 @@ const Cartelera = () => {
                             <span className="navbar-toggler-icon"></span>
                         </button>
                         <div className="collapse navbar-collapse" id="navbarNav">
-                            <ul className="navbar-nav ms-auto">
-                                <li className="nav-item"><a className="nav-link" href="#peliculas-populares">Cartelera</a></li>
-                                <li className="nav-item"><a className="nav-link" href="#">Carrito</a></li>
-                                <li className="nav-item"><Link className="nav-link" to="/login">Iniciar sesión</Link></li>
-                                <li className="nav-item"><Link className="nav-link" to="/register">Registro</Link></li>
-                            </ul>
-                        </div>
+                        <ul className="navbar-nav">
+                        <li className="nav-item"><a className="nav-link" href="#peliculas-populares">Cartelera</a></li>
+                        <li className="nav-item"><a className="nav-link" href="#">Carrito</a></li>
+                        </ul>
+
+                        <ul className="navbar-nav ms-auto">
+                        <li className="nav-item"><Link className="nav-link" to="/login">Iniciar sesión</Link></li>
+                       <li className="nav-item"><Link className="nav-link" to="/register">Registro</Link></li>
+                        </ul>
+                    </div>
+
                     </div>
                 </div>
             </nav>

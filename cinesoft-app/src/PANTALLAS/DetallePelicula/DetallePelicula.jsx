@@ -211,7 +211,7 @@ function DetallePelicula() {
               </div>
 
               <div style={{ marginTop: '12px' }}>
-                <button className="btn-link" onClick={handleReserva} disabled={!selectedDay || !selectedTime}>Reservar</button>
+                <button className="btn-link" disabled={!selectedDay || !selectedTime}>Reservar</button>
               </div>
             </div>
           </div>
@@ -220,5 +220,6 @@ function DetallePelicula() {
     </>
   )
 }
+
 
 export default DetallePelicula
