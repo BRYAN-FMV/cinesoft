@@ -5,12 +5,16 @@ import './cartelera.css'
 
 const INITIAL_COUNT = 4;
 const LOAD_INCREMENT = 4;
+const MAS_VISTAS_SIZE = 4;
+const ACCION_SIZE = 4;
+const ESTRENO_SIZE = 4;
 
 const Cartelera = () => {
     const [visibleCount1, setVisibleCount1] = useState(INITIAL_COUNT);
     const [visibleCount2, setVisibleCount2] = useState(INITIAL_COUNT);
     const [visibleCount3, setVisibleCount3] = useState(INITIAL_COUNT);
 
+    // quitado segundo argumento (hook ahora recibe solo la URL)
     const { data: peliculas, loading, error } = useFetch("http://localhost:3000/peliculas");
 
     const loadMore = (setCurrentCount, currentTotal) => {
@@ -26,18 +30,18 @@ const Cartelera = () => {
         peliculasRepetidas = Array(12).fill(peliculas[0]);
     }
 
-    const todasLasPeliculas = peliculasRepetidas.length > 13 ? peliculasRepetidas.slice(0, 13) : peliculasRepetidas;
+    const todasLasPeliculas = peliculasRepetidas;
 
-    const primeraPelicula = todasLasPeliculas[0];
-    const peliculasMasVistas = todasLasPeliculas.slice(1, 5);
-    const peliculasAccion = todasLasPeliculas.slice(5, 9);
-    const peliculasEstreno = todasLasPeliculas.slice(9, 13);
+    const primeraPelicula = todasLasPeliculas[0] || null;
+    const peliculasMasVistas = todasLasPeliculas.slice(1, 1 + MAS_VISTAS_SIZE);
+    const peliculasAccion = todasLasPeliculas.slice(1 + MAS_VISTAS_SIZE, 1 + MAS_VISTAS_SIZE + ACCION_SIZE);
+    const peliculasEstreno = todasLasPeliculas.slice(1 + MAS_VISTAS_SIZE + ACCION_SIZE, 1 + MAS_VISTAS_SIZE + ACCION_SIZE + ESTRENO_SIZE);
     
     const headerBackgroundImage = primeraPelicula && primeraPelicula.poster ? primeraPelicula.poster : '';
 
-
     const MovieCard = ({ pelicula, boxClass, index }) => (
-        <div key={pelicula.id ? pelicula.id : `movie-dup-${index}`} className={boxClass}> 
+        // usar _id si existe, si no fallback al index
+        <div key={pelicula._id ? pelicula._id : `movie-dup-${index}`} className={boxClass}> 
             <div className="content">
                 <img
                     src={pelicula.poster}
@@ -46,7 +50,8 @@ const Cartelera = () => {
                 <h5 className="text-white mt-2">{pelicula.titulo || 'Sin Título'}</h5>
                 <p className="text-secondary">{pelicula.genero || 'N/A'}</p>
                 
-                <Link to={`/detalle/${pelicula.id || 1}`} className="btn btn-primary">Detalles</Link> 
+                {/* enlace a /detalle/:id usando _id */}
+                <Link to={`/detalle/${pelicula._id || pelicula.id || 1}`} className="btn btn-primary">Detalles</Link> 
             </div>
         </div>
     );
@@ -86,7 +91,8 @@ const Cartelera = () => {
                             <h1>Las mejores <br /> películas </h1>
                             <h4>Descubre las últimas novedades y los clásicos imperdibles en nuestra cartelera.</h4>
                             <div>
-                                <Link to={`/detalle/${primeraPelicula.id || 1}`} className="btn btn-primary me-3">VER AHORA</Link> 
+                                {/* usar _id para el botón VER AHORA */}
+                                <Link to={`/detalle/${primeraPelicula._id || primeraPelicula.id || 1}`} className="btn btn-primary me-3">VER AHORA</Link> 
                             </div>
                         </div>
                     </div>
@@ -99,9 +105,14 @@ const Cartelera = () => {
                 <hr />
                 <div className="box-container-1">
                     {peliculasMasVistas.slice(0, visibleCount1).map((pelicula, index) => (
-                        <MovieCard key={index} pelicula={pelicula} boxClass="box-1" index={index} />
+                        <MovieCard pelicula={pelicula} boxClass="box-1" index={index} />
                     ))}
                 </div>
+                {visibleCount1 < peliculasMasVistas.length && (
+                    <div style={{textAlign: 'center', marginBottom: '30px'}}>
+                        <button onClick={() => loadMore(setVisibleCount1, peliculasMasVistas.length)} className="btn btn-primary">Cargar más</button>
+                    </div>
+                )}
             </section>
 
             {/* SECCIÓN 2: ACCIÓN */}
@@ -110,9 +121,14 @@ const Cartelera = () => {
                 <hr />
                 <div className="box-container-2">
                     {peliculasAccion.slice(0, visibleCount2).map((pelicula, index) => (
-                        <MovieCard key={index} pelicula={pelicula} boxClass="box-2" index={index} />
+                        <MovieCard pelicula={pelicula} boxClass="box-2" index={index} />
                     ))}
                 </div>
+                {visibleCount2 < peliculasAccion.length && (
+                    <div style={{textAlign: 'center', marginBottom: '30px'}}>
+                        <button onClick={() => loadMore(setVisibleCount2, peliculasAccion.length)} className="btn btn-primary">Cargar más</button>
+                    </div>
+                )}
             </section>
 
             {/* SECCIÓN 3: ESTRENO */}
@@ -121,9 +137,14 @@ const Cartelera = () => {
                 <hr />
                 <div className="box-container-3">
                     {peliculasEstreno.slice(0, visibleCount3).map((pelicula, index) => (
-                        <MovieCard key={index} pelicula={pelicula} boxClass="box-3" index={index} />
+                        <MovieCard pelicula={pelicula} boxClass="box-3" index={index} />
                     ))}
                 </div>
+                {visibleCount3 < peliculasEstreno.length && (
+                    <div style={{textAlign: 'center', marginBottom: '30px'}}>
+                        <button onClick={() => loadMore(setVisibleCount3, peliculasEstreno.length)} className="btn btn-primary">Cargar más</button>
+                    </div>
+                )}
             </section>
 
             {/* FOOTER */}
