@@ -1,0 +1,102 @@
+.splash-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  opacity: 1;
+  transition: opacity 0.8s ease-out;
+}
+
+.splash-screen.fade-out {
+  opacity: 0;
+}
+
+.splash-content {
+  text-align: center;
+  transform-origin: center;
+  animation: splashScale 2s ease-out forwards;
+}
+
+.logo-container {
+  position: relative;
+  display: inline-block;
+  perspective: 1000px;
+}
+
+.netflix-style {
+  position: relative;
+  overflow: hidden;
+  transform-style: preserve-3d;
+}
+
+.logo-text {
+  font-family: 'Arial Black', sans-serif;
+  font-size: 5rem;
+  font-weight: 900;
+  color: #e50914;
+  letter-spacing: 6px;
+  animation: textGlow 3s ease-out;
+  text-shadow: 0 0 20px rgba(229,9,20,0.7);
+  display: inline-block;
+}
+
+.shine-line {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(255, 255, 255, 0.8) 50%,
+    transparent 100%
+  );
+  animation: shine 1.5s ease-in-out 1s;
+  transform: skewX(-20deg);
+}
+
+@keyframes splashScale {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes textGlow {
+  0% {
+    opacity: 0;
+    text-shadow: 0 0 0 rgba(229,9,20,0);
+  }
+  50% {
+    opacity: 0.8;
+    text-shadow: 0 0 30px rgba(229,9,20,0.8);
+  }
+  100% {
+    opacity: 1;
+    text-shadow: 0 0 20px rgba(229,9,20,0.7);
+  }
+}
+
+@keyframes shine {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 200%;
+  }
+}
