@@ -1,11 +1,16 @@
 import { useFetch } from '../../hooks/useFetch'
 import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useSearchParams } from 'react-router-dom' // Importado useSearchParams
 import './DetallePelicula.css'
 
 function DetallePelicula() {
   const { id } = useParams()
-  if (!id) return <div className="text-center">ID de película no especificado.</div>
+  
+  const [searchParams] = useSearchParams(); // Obtenemos los parámetros de búsqueda de la URL
+  const peliculaId = id; 
+  
+  // CORRECCIÓN 1: Validación robusta para evitar la llamada al backend con ID 'undefined'
+  if (!id || id === 'undefined') return <div className="text-center">ID de película no especificado.</div>
 
   const { data, loading, error } = useFetch(`http://localhost:3000/peliculas/${id}`)
 
@@ -39,6 +44,22 @@ function DetallePelicula() {
 
   const dias = getNextDays(7)
 
+  // CORRECCIÓN 2: Efecto para restaurar la selección de día y hora desde la URL (al regresar)
+  useEffect(() => {
+    const dayParam = searchParams.get('day');
+    const timeParam = searchParams.get('time');
+
+    // Solo inicializa el día si viene en la URL y aún no se ha seleccionado
+    if (dayParam && selectedDay === null) {
+        setSelectedDay(dayParam);
+    }
+    // Solo inicializa la hora si viene en la URL y aún no se ha seleccionado
+    if (timeParam && selectedTime === null) {
+        setSelectedTime(timeParam);
+    }
+  }, [searchParams, selectedDay, selectedTime]); // Depende de searchParams y el estado actual
+
+
   // intenta obtener horarios desde backend /peliculas/:id/horarios
   useEffect(() => {
     if (!id) return
@@ -52,10 +73,7 @@ function DetallePelicula() {
         return res.json()
       })
       .then((result) => {
-        // aceptar varias formas:
-        // 1) { "2025-10-31": ["12:00","15:00"], ... }
-        // 2) ["2025-10-31T20:00:00.000Z", "2025-10-31T22:30:00.000Z", ...]
-        // 3) ["12:00","15:00"] -> mismos horarios todos los días
+
 
         if (Array.isArray(result)) {
           // Si son strings ISO con "T", convertirlas en fechas legibles agrupadas por día
@@ -94,9 +112,10 @@ function DetallePelicula() {
       })
       .finally(() => {
         setLoadingHorarios(false)
+        // Solo establece el día por defecto si no ha sido inicializado ya por los parámetros de la URL
         if (!selectedDay) setSelectedDay(dias[0].iso)
       })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [id])
 
   // cuando cambia el día, limpiar horario seleccionado
@@ -110,12 +129,10 @@ function DetallePelicula() {
 
   const availableTimes = horariosPorDia ? (horariosPorDia[selectedDay] || []) : []
 
-  const handleReserva = () => {
-    if (!selectedDay || !selectedTime) return alert('Selecciona día y horario.')
-    // aquí puedes realizar POST a /reservas o llevar al flujo de compra
-    console.log('Reservar:', { peliculaId: pelicula._id || id, dia: selectedDay, hora: selectedTime })
-    alert(`Reserva: ${pelicula.titulo} - ${selectedDay} ${selectedTime}`)
-  }
+  // LINEA 111: SE OBTIENE EL TÍTULO DE LA PELÍCULA
+  const movieTitle = pelicula.titulo || pelicula.title || 'Película sin Título';
+
+
 
   return (
     <>
@@ -157,7 +174,7 @@ function DetallePelicula() {
           </div>
 
           <div className="info-section">
-            <h1>{pelicula.titulo || pelicula.title || 'Sin título'}</h1>
+            <h1>{movieTitle}</h1>
             <p><strong>Género:</strong> {pelicula.genero || pelicula.genre || 'N/A'}</p>
             <p><strong>Director:</strong> {pelicula.director || 'N/A'}</p>
             <p><strong>Duración:</strong> {pelicula.duracion ? `${pelicula.duracion} min` : 'N/A'}</p>
@@ -211,7 +228,17 @@ function DetallePelicula() {
               </div>
 
               <div style={{ marginTop: '12px' }}>
-                <button className="btn-link" disabled={!selectedDay || !selectedTime}>Reservar</button>
+                {/* REEMPLAZO DEL BOTÓN POR EL LINK DE NAVEGACIÓN */}
+                <Link 
+                  to={`/asientos/${peliculaId}?day=${selectedDay}&time=${selectedTime}&title=${encodeURIComponent(movieTitle)}&movieId=${peliculaId}`} 
+                  
+                  className={`btn btn-lg ${!selectedDay || !selectedTime ? 'btn-secondary disabled' : 'btn-success'}`}
+                  
+                  aria-disabled={!selectedDay || !selectedTime}
+                  style={!selectedDay || !selectedTime ? { pointerEvents: 'none' } : {}}
+                >
+                 Reservar
+                </Link>
               </div>
             </div>
           </div>
