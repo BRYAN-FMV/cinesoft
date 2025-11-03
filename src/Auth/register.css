@@ -1,8 +1,0 @@
-.auth-container{display:flex;min-height:70vh;align-items:center;justify-content:center;padding:40px}
-.auth-form{width:360px;background:#111;padding:28px;border-radius:8px;color:#fff}
-.auth-form h2{margin-bottom:16px;text-align:center}
-.auth-form label{display:block;margin-bottom:12px;font-size:14px}
-.auth-form input{width:100%;padding:8px;margin-top:6px;border-radius:4px;border:1px solid #333;background:#222;color:#fff}
-.auth-form .btn{width:100%;margin-top:12px}
-.auth-error{background:#6b0b0b;padding:8px;border-radius:4px;margin-bottom:12px;color:#fff}
-.auth-alternate{margin-top:12px;text-align:center;color:#bbb}
