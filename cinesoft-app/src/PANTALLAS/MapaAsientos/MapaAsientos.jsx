@@ -2,28 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom';
 import './MapaAsientos.css';
 import { useAuth } from '../../hooks/useAuth.js';
+import { useFetch } from '../../hooks/useFetch.js';
 
 // --- Constantes de la Sala ---
 const SEAT_LAYOUT = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
 const COLUMNS = 5;
-
-const MOCK_ASIENTOS_DATA =
-  SEAT_LAYOUT.flatMap(rowLetter =>
-    Array.from({ length: COLUMNS }, (_, i) => ({
-      _id: `${rowLetter}${i + 1}`,
-      nombre: `${rowLetter}${i + 1}`,
-      estado:
-        (rowLetter === 'B' && i === 1) || (rowLetter === 'C' && i === 2)
-          ? 'ocupado'
-          : 'disponible', // Simula B2 y C3 ocupados
-    }))
-  );
 
 function MapaAsientos() {
   const { id: funcionId } = useParams();
   const navigate = useNavigate();
   const { token } = useAuth();
   const [searchParams] = useSearchParams();
+
+  console.log('[MapaAsientos] funcionId recibido desde URL:', funcionId);
 
   // Obtener parámetros de la URL
   const selectedDay = searchParams.get('day');
@@ -33,22 +24,128 @@ function MapaAsientos() {
   const movieId = rawMovieId && rawMovieId.trim() !== '' ? rawMovieId : funcionId;
   const movieTitle = movieTitleParam ? decodeURIComponent(movieTitleParam) : 'Película Desconocida';
 
-  const asientosData = MOCK_ASIENTOS_DATA;
-  const loading = false;
+  console.log('[MapaAsientos] Parámetros URL:', { selectedDay, selectedTime, movieTitle, movieId });
+
+  // Usar el endpoint real para obtener asientos de la función
+  const endpointUrl = `http://localhost:3000/funciones/${funcionId}/asientos`;
+  console.log('[MapaAsientos] Consultando endpoint:', endpointUrl);
+  
+  const { data: asientosData, loading, error } = useFetch(endpointUrl);
+
+  // Debug adicional para verificar el estado del hook useFetch
+  useEffect(() => {
+    console.log('[MapaAsientos] === ESTADO useFetch ===');
+    console.log('[MapaAsientos] loading:', loading);
+    console.log('[MapaAsientos] error:', error);
+    console.log('[MapaAsientos] data:', asientosData);
+    console.log('[MapaAsientos] ========================');
+  }, [loading, error, asientosData]);
 
   const [asientosReal, setAsientosReal] = useState({});
   const [selectedSeats, setSelectedSeats] = useState([]);
   const [alertMessage, setAlertMessage] = useState('');
 
   useEffect(() => {
-    if (asientosData && asientosData.length > 0) {
-      const asientosMap = asientosData.reduce((acc, asiento) => {
-        acc[asiento.nombre] = asiento;
-        return acc;
-      }, {});
-      setAsientosReal(asientosMap);
-      setSelectedSeats([]);
+    console.log('[MapaAsientos] === DEBUG COMPLETO ===');
+    console.log('[MapaAsientos] Datos recibidos del backend:', asientosData);
+    console.log('[MapaAsientos] Tipo de datos:', typeof asientosData);
+    
+    if (asientosData) {
+      // Mostrar la estructura completa
+      console.log('[MapaAsientos] Estructura completa:', JSON.stringify(asientosData, null, 2));
+      
+      let asientos = [];
+      
+      // NUEVA ESTRUCTURA: El backend devuelve { mapa: { A: [...], B: [...] } }
+      if (asientosData.mapa && typeof asientosData.mapa === 'object') {
+        console.log('[MapaAsientos] Encontrado mapa por filas:', asientosData.mapa);
+        
+        // Convertir el objeto de filas en un array plano de asientos
+        Object.keys(asientosData.mapa).forEach(fila => {
+          const asientosFila = asientosData.mapa[fila];
+          if (Array.isArray(asientosFila)) {
+            asientosFila.forEach(asiento => {
+              const nombreAsiento = asiento.codigo || `${asiento.fila}${asiento.numero}`;
+              const asientoNormalizado = {
+                _id: asiento._id,
+                nombre: nombreAsiento,
+                estado: asiento.estadoFuncion || 'disponible',
+                fila: asiento.fila,
+                numero: asiento.numero
+              };
+              
+              console.log('[MapaAsientos] Procesando asiento individual:', asientoNormalizado);
+              asientos.push(asientoNormalizado);
+            });
+          }
+        });
+        
+        console.log('[MapaAsientos] Asientos procesados desde mapa por filas:', asientos.length);
+      }
+      // ESTRUCTURA ANTERIOR: funcion.mapa como array
+      else if (asientosData.funcion && asientosData.funcion.mapa && Array.isArray(asientosData.funcion.mapa)) {
+        asientos = asientosData.funcion.mapa;
+        console.log('[MapaAsientos] Asientos encontrados en funcion.mapa (array):', asientos);
+      }
+      // Fallback: si es un array directo
+      else if (Array.isArray(asientosData)) {
+        asientos = asientosData;
+        console.log('[MapaAsientos] Usando array directo:', asientos);
+      }
+      // Si es un objeto con otra estructura
+      else {
+        console.warn('[MapaAsientos] Formato de respuesta inesperado:', asientosData);
+        console.log('[MapaAsientos] Claves disponibles:', Object.keys(asientosData));
+        asientos = [];
+      }
+
+      if (asientos.length > 0) {
+        console.log('[MapaAsientos] Procesando', asientos.length, 'asientos reales del backend');
+        const asientosMap = asientos.reduce((acc, asiento) => {
+          // Asegurar que cada asiento tiene las propiedades necesarias
+          const asientoNormalizado = {
+            _id: asiento._id || asiento.id,
+            nombre: asiento.nombre || asiento.codigo || `${asiento.fila}${asiento.numero}` || asiento._id,
+            estado: asiento.estado || asiento.estadoFuncion || 'disponible',
+            originalData: asiento // Guardar datos originales para debug
+          };
+          
+          // Registrar el asiento con su nombre original
+          acc[asientoNormalizado.nombre] = asientoNormalizado;
+          
+          // TAMBIÉN registrar con formato simplificado si es diferente
+          if (asiento.fila && asiento.numero) {
+            const nombreSimple = `${asiento.fila}${asiento.numero}`;
+            if (nombreSimple !== asientoNormalizado.nombre) {
+              console.log(`[MapaAsientos] Registrando asiento con nombre alternativo: ${nombreSimple} (original: ${asientoNormalizado.nombre})`);
+              acc[nombreSimple] = asientoNormalizado;
+            }
+          }
+          
+          console.log('[MapaAsientos] Asiento registrado:', {
+            nombre: asientoNormalizado.nombre,
+            estado: asientoNormalizado.estado,
+            fila: asiento.fila,
+            numero: asiento.numero
+          });
+          
+          return acc;
+        }, {});
+        
+        console.log('[MapaAsientos] Asientos REALES procesados:', asientosMap);
+        console.log('[MapaAsientos] Total asientos REALES:', Object.keys(asientosMap).length);
+        setAsientosReal(asientosMap);
+        setSelectedSeats([]);
+      } else {
+        console.warn('[MapaAsientos] ¡MAPA VACÍO! El backend no tiene asientos configurados');
+        console.log('[MapaAsientos] No se usarán datos mock, mostrando mapa vacío');
+        setAsientosReal({});
+        setSelectedSeats([]);
+      }
+    } else {
+      console.error('[MapaAsientos] ¡No hay datos! asientosData es null/undefined');
     }
+    console.log('[MapaAsientos] === FIN DEBUG ===');
   }, [asientosData]);
 
   const toggleSeat = (seatId, e) => {
@@ -87,9 +184,32 @@ function MapaAsientos() {
         {Array.from({ length: COLUMNS }, (_, i) => {
           const seatNumber = i + 1;
           const seatId = `${rowLetter}${seatNumber}`;
-          const asiento = asientosReal[seatId];
+          
+          // Buscar el asiento en diferentes formatos posibles
+          let asiento = asientosReal[seatId]; // Formato "A1"
+          if (!asiento) {
+            // Buscar con formato "5-A1" o similar
+            const altFormats = [
+              `5-${seatId}`,
+              `${rowLetter}${seatNumber}`,
+              `${rowLetter}-${seatNumber}`,
+            ];
+            for (const format of altFormats) {
+              if (asientosReal[format]) {
+                asiento = asientosReal[format];
+                break;
+              }
+            }
+          }
 
-          if (!asiento) return null;
+          if (!asiento) {
+            // Si no hay asiento real, crear uno temporal como no disponible
+            asiento = {
+              _id: seatId,
+              nombre: seatId,
+              estado: 'no-disponible'
+            };
+          }
 
           const isOccupied = asiento.estado !== 'disponible';
           const isSelected = selectedSeats.includes(seatId);
@@ -125,8 +245,54 @@ function MapaAsientos() {
     );
   };
 
-  if (loading || Object.keys(asientosReal).length === 0)
+  // Manejo de estados de carga y error
+  if (loading) {
+    console.log('[MapaAsientos] ESTADO: Cargando...');
     return <div className="text-white text-center my-5">Cargando mapa de asientos...</div>;
+  }
+
+  if (error) {
+    console.error('[MapaAsientos] ERROR:', error);
+    return (
+      <div className="container my-5 text-center">
+        <div className="alert alert-danger" role="alert">
+          <h4>Error al cargar asientos</h4>
+          <p>No se pudieron cargar los asientos de la función. {error}</p>
+          <p><strong>Endpoint consultado:</strong> {endpointUrl}</p>
+          <p><strong>funcionId:</strong> {funcionId}</p>
+          <button 
+            className="btn btn-primary mt-3"
+            onClick={() => navigate(`/detalle/${movieId}`, { replace: true })}
+          >
+            Volver a seleccionar función
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  console.log('[MapaAsientos] ESTADO: Datos cargados, verificando asientos...');
+  console.log('[MapaAsientos] asientosReal contiene:', Object.keys(asientosReal).length, 'asientos');
+
+  if (!asientosData || Object.keys(asientosReal).length === 0) {
+    console.warn('[MapaAsientos] PROBLEMA: No hay asientos para mostrar');
+    return (
+      <div className="container my-5 text-center">
+        <div className="alert alert-warning" role="alert">
+          <h4>No hay asientos disponibles</h4>
+          <p>No se encontraron asientos para esta función.</p>
+          <p><strong>Endpoint consultado:</strong> {endpointUrl}</p>
+          <p><strong>funcionId:</strong> {funcionId}</p>
+          <button 
+            className="btn btn-primary mt-3"
+            onClick={() => navigate(`/detalle/${movieId}`, { replace: true })}
+          >
+            Volver a seleccionar función
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <React.Fragment>
