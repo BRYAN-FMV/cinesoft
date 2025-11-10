@@ -1,0 +1,113 @@
+
+.carrito-offcanvas {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 350px; /* Ancho del panel */
+    height: 100%;
+    z-index: 1050; /* Z-index alto para estar sobre todo */
+    background-color: #0d0d0d; 
+    color: #FFFFFF; 
+    border-left: 2px solid #FF2F28; 
+
+    /* POSICIÓN INICIAL: Fuera de la pantalla */
+    transform: translateX(100%);
+    transition: transform 0.3s ease-in-out;
+    box-shadow: -5px 0 15px rgba(0, 0, 0, 0.5);
+}
+
+/* POSICIÓN ACTIVA: Entra a la pantalla */
+.carrito-offcanvas.open {
+    transform: translateX(0);
+}
+
+/* 2. Estilos del encabezado */
+.carrito-header {
+    background-color: #030303; 
+    border-bottom: 1px solid #FF2F28; 
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.carrito-title {
+    font-size: 1.25rem;
+    font-weight: bold;
+}
+
+.carrito-close-btn {
+    background: none;
+    border: none;
+    color: #FFFFFF;
+    font-size: 1.5rem;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.carrito-close-btn:hover {
+    opacity: 1;
+}
+
+/* 3. Estilos del cuerpo y contenido */
+.carrito-body {
+    padding: 20px;
+    height: calc(100% - 140px); /* Altura menos header y footer */
+    overflow-y: auto;
+}
+
+.carrito-item-pure {
+    background-color: #1a1a1a;
+    border: 1px solid #333333;
+    padding: 15px;
+    border-radius: 5px;
+    display: flex; /* Asegura el layout de Bootstrap */
+    justify-content: space-between;
+    align-items: center;
+}
+
+.carrito-price {
+    color: #FF2F28 !important; 
+    font-weight: bold;
+}
+
+.btn-trash {
+    color: #999999;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.btn-trash:hover {
+    color: #FF2F28;
+}
+
+/* 4. Estilos del footer y botón de checkout */
+.carrito-footer {
+    border-top: 1px solid #333;
+    padding-top: 20px;
+    margin-top: 20px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.btn-checkout {
+    background-color: #FF2F28; 
+    border: 2px solid #FF2F28;
+    color: #FFFFFF;
+    font-weight: bold;
+    padding: 10px;
+    width: 100%;
+    margin-top: 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    text-transform: uppercase;
+}
+
+.btn-checkout:hover {
+    background-color: #fa0000; 
+    border-color: #fa0000;
+}
