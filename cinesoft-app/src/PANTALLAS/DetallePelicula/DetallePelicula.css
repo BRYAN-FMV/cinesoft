@@ -5,20 +5,6 @@
   text-align: center;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
-}
-
-
 .movies-section {
   margin: 2rem 0;
   padding: 1rem;
@@ -408,5 +394,169 @@
   }
   .detalle-card .info-section > div {
     text-align: center;
+  }
+}
+
+/* --- Estilos para filtros de días --- */
+.day-filters {
+  margin-bottom: 16px;
+}
+
+.day-filters .btn-group {
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.day-filters .btn-group .btn {
+  border-radius: 20px;
+  margin: 2px;
+  font-size: 0.85rem;
+  padding: 6px 12px;
+  transition: all 0.2s ease;
+}
+
+.btn-day {
+  min-width: 100px;
+  position: relative;
+  padding: 8px 12px;
+  text-align: center;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.btn-day:not(.disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,123,255,0.3);
+}
+
+.btn-day.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-day strong {
+  display: block;
+  font-size: 0.9rem;
+}
+
+.days-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+/* Responsive para filtros */
+@media (max-width: 768px) {
+  .day-filters .btn-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .day-filters .btn-group .btn {
+    width: 100%;
+    margin: 0;
+  }
+  
+  .btn-day {
+    min-width: 80px;
+    font-size: 0.8rem;
+  }
+  
+  .days-row {
+    gap: 6px;
+  }
+}
+
+/* --- Estilos para horarios de funciones --- */
+.times-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.funcion-button {
+  padding: 12px;
+  text-align: left;
+  font-size: 0.9rem;
+  line-height: 1.3;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  background: #fff;
+  color: #333;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.funcion-button:hover {
+  border-color: #007bff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.funcion-button.selected {
+  background: #28a745;
+  color: white;
+  border-color: #28a745;
+}
+
+.funcion-hora {
+  font-weight: bold;
+  font-size: 1.1rem;
+  margin-bottom: 4px;
+}
+
+.funcion-precio {
+  color: #28a745;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.funcion-button.selected .funcion-precio {
+  color: #fff;
+}
+
+.funcion-idioma {
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+.seleccion-info {
+  margin-top: 12px;
+  padding: 12px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+}
+
+.seleccion-info-item {
+  margin-top: 4px;
+}
+
+.precio-destacado {
+  color: #28a745;
+  font-weight: 600;
+}
+
+/* Responsive para horarios */
+@media (max-width: 768px) {
+  .times-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 8px;
+  }
+  
+  .funcion-button {
+    padding: 10px;
+    font-size: 0.85rem;
+  }
+  
+  .funcion-hora {
+    font-size: 1rem;
   }
 }
