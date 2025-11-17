@@ -26,6 +26,26 @@ const Register = () => {
     e.preventDefault()
     setError(null)
     setLoading(true)
+    
+    // Validaciones básicas en el frontend
+    if (!name.trim()) {
+      setError('El nombre es requerido')
+      setLoading(false)
+      return
+    }
+    
+    if (!email.trim() || !email.includes('@')) {
+      setError('Ingresa un email válido')
+      setLoading(false)
+      return
+    }
+    
+    if (password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres')
+      setLoading(false)
+      return
+    }
+    
     try {
       const res = await fetch('http://localhost:3000/usuarios/register', {
         method: 'POST',
@@ -42,7 +62,13 @@ const Register = () => {
         throw new Error(`Respuesta inválida del servidor (${res.status}): ${text.substring(0, 200)}`)
       }
 
-      if (!res.ok) throw new Error(data.message || `Error al registrarse (status ${res.status})`)
+      if (!res.ok) {
+        // Manejo específico para error 409 (Conflict)
+        if (res.status === 409) {
+          throw new Error(data.message || 'Este email ya está registrado. Intenta con otro email o inicia sesión.')
+        }
+        throw new Error(data.message || `Error al registrarse (status ${res.status})`)
+      }
 
       if (data.token) {
         login(data.token, data.user)

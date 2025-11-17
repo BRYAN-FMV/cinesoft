@@ -38,10 +38,38 @@ const Login = () => {
 
       if (!res.ok) throw new Error(data.message || `Error al iniciar sesión (status ${res.status})`)
 
+      console.log('[Login] Respuesta del backend:', data)
+
+      // verificar que se recibió el token
+      if (!data.token) {
+        throw new Error('El servidor no devolvió un token válido')
+      }
+
       // guardar token y estado global
       login(data.token, data.user)
+      console.log('[Login] Token guardado exitosamente')
       setLoading(false)
-      navigate('/')
+      
+      // Verificar si hay una reserva pendiente después del login
+      const pendingReservation = sessionStorage.getItem('pendingReservation')
+      if (pendingReservation) {
+        try {
+          const reservationData = JSON.parse(pendingReservation)
+          console.log('[Login] Reserva pendiente encontrada, redirigiendo:', reservationData)
+          
+          // Limpiar la reserva pendiente del storage
+          sessionStorage.removeItem('pendingReservation')
+          
+          // Redirigir de vuelta a la URL donde estaba el usuario
+          navigate(reservationData.returnUrl || '/cartelera', { replace: true })
+        } catch (error) {
+          console.error('[Login] Error al procesar reserva pendiente:', error)
+          navigate('/cartelera')
+        }
+      } else {
+        // Redirección normal si no hay reserva pendiente
+        navigate('/cartelera')
+      }
     } catch (err) {
       setLoading(false)
       setError(err.message)
@@ -51,6 +79,13 @@ const Login = () => {
   useEffect(() => {
     // small delay so CSS animation plays on mount
     const t = setTimeout(() => setMounted(true), 20)
+    
+    // Verificar si el usuario fue redirigido aquí por intentar hacer una reserva sin estar logueado
+    const pendingReservation = sessionStorage.getItem('pendingReservation')
+    if (pendingReservation) {
+      setError('Debes iniciar sesión para continuar con tu reserva.')
+    }
+    
     return () => clearTimeout(t)
   }, [])
 
