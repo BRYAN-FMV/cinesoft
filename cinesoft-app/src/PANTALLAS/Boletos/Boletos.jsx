@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom';
 import './Boletos.css';
+import Productos from '../Productos/productos.jsx'; 
 
 // Precios de los boletos
 const PRECIOS = {
@@ -33,6 +34,10 @@ function Boletos() {
     // 3. Estado para manejar el mensaje de error o límite
     const [alertMessage, setAlertMessage] = useState('');
 
+    // 4. Estado para manejar la selección de productos
+    const [showProductos, setShowProductos] = useState(false);
+    const [selectedProducts, setSelectedProducts] = useState([]);
+
     // Función para actualizar la cantidad de boletos
     const updateQuantity = (type, delta) => {
         setAlertMessage('');
@@ -55,16 +60,16 @@ function Boletos() {
         });
     };
 
-    // 4. Calcular el total a pagar
+    // 5. Calcular el total a pagar
     const totalAmount = useMemo(() => {
         return (quantities.adulto * PRECIOS.adulto) + (quantities.nino * PRECIOS.nino);
     }, [quantities]);
 
-    // 5. Verificar si la cantidad total de boletos coincide con los asientos
+    // 6. Verificar si la cantidad total de boletos coincide con los asientos
     const totalBoletos = quantities.adulto + quantities.nino;
     const isTotalValid = totalBoletos === seatCount && totalAmount > 0;
     
-    // 6. Función para finalizar la compra (simulada)
+    // 7. Función para finalizar la compra (simulada)
     const handleFinalize = () => {
         if (!isTotalValid) {
             setAlertMessage(`Debes seleccionar un total de ${seatCount} boletos para continuar. Total actual: ${totalBoletos}.`);
@@ -75,7 +80,13 @@ function Boletos() {
         // En una app real, navegarías a la confirmación: navigate('/confirmacion');
     };
 
-    // 7. Renderizar el selector de cantidad para cada tipo de boleto
+    // 8. Función para manejar la adición de productos
+    const handleAddProducts = (products) => {
+        setSelectedProducts(products);
+        // Aquí puedes calcular el total incluyendo los productos
+    };
+
+    // 9. Renderizar el selector de cantidad para cada tipo de boleto
     const renderTicketSelector = (type, label, price) => (
         <div className="boleto-selector" key={type}>
             <div>
@@ -159,7 +170,12 @@ function Boletos() {
                     
                     {/* Botones de acción */}
                     <div className="d-flex justify-content-between mt-4 gap-3">
-                        <button className="btn btn-snacks flex-grow-1">Añadir comida y snacks</button>
+                        <button 
+                            className="btn btn-snacks flex-grow-1" 
+                            onClick={() => setShowProductos(true)}
+                        >
+                            Añadir comida y snacks
+                        </button>
                         <button 
                             className="btn btn-comprar flex-grow-1" 
                             onClick={handleFinalize}
@@ -169,6 +185,25 @@ function Boletos() {
                         </button>
                     </div>
 
+                    {/* Componente de selección de productos */}
+                    {showProductos && (
+                        <Productos 
+                            onClose={() => setShowProductos(false)}
+                            onAddToCart={handleAddProducts}
+                        />
+                    )}
+                    
+                    {/* Mostrar productos seleccionados */}
+                    {selectedProducts.length > 0 && (
+                        <div className="productos-seleccionados mt-4">
+                            <h4>Productos seleccionados:</h4>
+                            {selectedProducts.map(item => (
+                                <div key={item._id} className="producto-item">
+                                    {item.cantidad}x {item.nombre} - ${item.precio * item.cantidad}
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
 
