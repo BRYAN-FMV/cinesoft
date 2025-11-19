@@ -3,6 +3,7 @@ import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom'
 import './MapaAsientos.css';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useFetch } from '../../hooks/useFetch.js';
+import { useCart } from '../../context/CartContext.jsx';
 
 // --- Constantes de la Sala ---
 const SEAT_LAYOUT = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
@@ -11,10 +12,13 @@ const COLUMNS = 5;
 function MapaAsientos() {
   const { id: funcionId } = useParams();
   const navigate = useNavigate();
-  const { token } = useAuth();
+  const { token, loading: authLoading } = useAuth();
+  const { addReservation } = useCart();
   const [searchParams] = useSearchParams();
 
   console.log('[MapaAsientos] funcionId recibido desde URL:', funcionId);
+  console.log('[MapaAsientos] Token disponible:', !!token);
+  console.log('[MapaAsientos] Auth loading:', authLoading);
 
   // Obtener parámetros de la URL
   const selectedDay = searchParams.get('day');
@@ -23,6 +27,14 @@ function MapaAsientos() {
   const rawMovieId = searchParams.get('movieId');
   const movieId = rawMovieId && rawMovieId.trim() !== '' ? rawMovieId : funcionId;
   const movieTitle = movieTitleParam ? decodeURIComponent(movieTitleParam) : 'Película Desconocida';
+  
+  // Obtener información adicional de la función (precio, idioma, sala)
+  const precio = parseFloat(searchParams.get('precio')) || 0;
+  const idioma = searchParams.get('idioma') || 'No especificado';
+  const salaId = searchParams.get('salaId') || 'No especificada';
+  
+  // Estado para almacenar información de la sala
+  const [salaInfo, setSalaInfo] = useState(null);
 
   console.log('[MapaAsientos] Parámetros URL:', { selectedDay, selectedTime, movieTitle, movieId });
 
@@ -148,6 +160,19 @@ function MapaAsientos() {
     console.log('[MapaAsientos] === FIN DEBUG ===');
   }, [asientosData]);
 
+  // Extraer información de la sala desde los datos del backend
+  useEffect(() => {
+    if (asientosData && asientosData.funcion && asientosData.funcion.sala) {
+      const sala = asientosData.funcion.sala;
+      if (typeof sala === 'object' && sala.nombre) {
+        setSalaInfo(sala.nombre);
+        console.log('[MapaAsientos] Información de sala obtenida:', sala.nombre);
+      } else if (typeof sala === 'string') {
+        setSalaInfo(sala);
+      }
+    }
+  }, [asientosData]);
+
   const toggleSeat = (seatId, e) => {
     e.preventDefault(); // Prevenir cualquier comportamiento por defecto
     e.stopPropagation(); // Detener la propagación del evento
@@ -169,13 +194,63 @@ function MapaAsientos() {
       return;
     }
 
-    const seatsList = selectedSeats.join(',');
+    // Esperar a que termine de cargar la autenticación
+    if (authLoading) {
+      setAlertMessage("Verificando autenticación...");
+      return;
+    }
 
-    // Navegación hacia la pantalla de Boletos
-    const targetUrl = `/boletos/${funcionId}?seats=${seatsList}&day=${selectedDay}&time=${selectedTime}&title=${encodeURIComponent(movieTitle)}${movieId ? `&movieId=${movieId}` : ''}`;
+    // Verificar autenticación antes de continuar
+    if (!token) {
+      console.log('[MapaAsientos] Usuario no autenticado, redirigiendo al login');
+      setAlertMessage("Debes iniciar sesión para continuar con la compra. Serás redirigido al login.");
+      
+      // Guardar el estado actual en sessionStorage para retomarlo después del login
+      const reservationState = {
+        funcionId,
+        selectedSeats,
+        selectedDay,
+        selectedTime,
+        movieTitle,
+        movieId,
+        returnUrl: window.location.pathname + window.location.search
+      };
+      
+      sessionStorage.setItem('pendingReservation', JSON.stringify(reservationState));
+      console.log('[MapaAsientos] Estado de reserva guardado:', reservationState);
+      
+      // Redirigir al login después de un breve delay
+      setTimeout(() => {
+        navigate('/login', { replace: true });
+      }, 2000);
+      
+      return;
+    }
 
-    // Reemplazamos la entrada actual en el historial (evita duplicación)
-    navigate(targetUrl, { replace: true });
+    console.log('[MapaAsientos] Usuario autenticado, agregando reserva al carrito');
+    
+    // Crear objeto de reserva
+    const reservationData = {
+      funcionId,
+      movieTitle,
+      selectedDay,
+      selectedTime,
+      selectedSeats,
+      precio,
+      idioma,
+      sala: salaInfo || salaId || 'No especificada'
+    };
+    
+    // Agregar al carrito
+    addReservation(reservationData);
+    
+    // Navegar al carrito o a una página de confirmación
+    setAlertMessage(`¡Reserva agregada al carrito! ${selectedSeats.length} asiento(s) para ${movieTitle}`);
+    
+    // Opcional: redirigir al carrito después de un delay
+    setTimeout(() => {
+      navigate('/cartelera', { replace: true });
+    }, 2000);
   };
 
   const renderSeatRow = (rowLetter) => {
@@ -351,6 +426,12 @@ function MapaAsientos() {
               ? `${selectedDay} a las ${selectedTime}`
               : 'Fecha y hora no seleccionadas'}
           </p>
+          {salaInfo && (
+            <p className="text-info">
+              <strong>Sala:</strong> {salaInfo} | <strong>Idioma:</strong> {idioma}
+              {precio > 0 && <span> | <strong>Precio:</strong> ${precio}</span>}
+            </p>
+          )}
         </div>
 
         <div className="row justify-content-center">
@@ -374,11 +455,45 @@ function MapaAsientos() {
             {/* BOTÓN CONTINUAR */}
             <button
               onClick={handleContinue}
-              className="btn btn-warning btn-lg mt-4 fw-bold"
-              disabled={selectedSeats.length === 0}
+              className={`btn btn-lg mt-4 fw-bold ${
+                authLoading
+                  ? 'btn-secondary'
+                  : !token 
+                    ? 'btn-info' 
+                    : selectedSeats.length === 0 
+                      ? 'btn-secondary' 
+                      : 'btn-success'
+              }`}
+              disabled={(selectedSeats.length === 0 && token) || authLoading}
             >
-              Continuar con la compra ({selectedSeats.length} asiento(s))
+              {authLoading
+                ? `Verificando autenticación... (${selectedSeats.length} asiento(s))`
+                : !token 
+                  ? `Iniciar sesión para continuar (${selectedSeats.length} asiento(s))`
+                  : `Agregar al carrito (${selectedSeats.length} asiento(s))`
+              }
             </button>
+            
+            {/* Información de precio */}
+            {token && selectedSeats.length > 0 && precio > 0 && (
+              <div className="alert alert-info mt-3" role="alert">
+                <small>
+                  <strong>Precio por asiento:</strong> ${precio.toFixed(2)} <br />
+                  <strong>Total:</strong> ${(precio * selectedSeats.length).toFixed(2)}
+                </small>
+              </div>
+            )}
+            
+            {/* Mensaje informativo para usuarios no autenticados */}
+            {!authLoading && !token && (
+              <div className="alert alert-info mt-3" role="alert">
+                <small>
+                  <i className="bi bi-info-circle me-2"></i>
+                  Debes iniciar sesión para agregar asientos al carrito. 
+                  Tu selección se guardará temporalmente.
+                </small>
+              </div>
+            )}
           </div>
         </div>
       </div>
