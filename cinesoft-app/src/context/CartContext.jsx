@@ -33,7 +33,7 @@ const cartReducer = (state, action) => {
         return {
           ...state,
           reservations: updatedReservations,
-          total: calculateTotal(updatedReservations)
+          total: calculateTotal(updatedReservations, state.products)
         };
       } else {
         // Agregar nueva reserva
@@ -41,7 +41,7 @@ const cartReducer = (state, action) => {
         return {
           ...state,
           reservations: updatedReservations,
-          total: calculateTotal(updatedReservations)
+          total: calculateTotal(updatedReservations, state.products)
         };
       }
 
@@ -52,21 +52,63 @@ const cartReducer = (state, action) => {
       return {
         ...state,
         reservations: filteredReservations,
-        total: calculateTotal(filteredReservations)
+        total: calculateTotal(filteredReservations, state.products)
       };
+
+      case 'ADD_PRODUCTS': 
+        const itemsToAdd = action.payload.products || [];
+        let newProductsList = [...state.products];
+        
+        itemsToAdd.forEach(newItem => {
+            const existingProductIndex = newProductsList.findIndex(p => p._id === newItem._id);
+            
+            if (existingProductIndex !== -1) {
+                newProductsList[existingProductIndex] = {
+                    ...newProductsList[existingProductIndex],
+                    cantidad: newItem.cantidad
+                };
+            } else {
+                // Si es nuevo, agregarlo
+                newProductsList.push(newItem);
+            }
+        });
+
+        // Aseguramos que no haya productos con cantidad 0
+        const finalProductsList = newProductsList.filter(p => p.cantidad > 0);
+
+        return {
+            ...state,
+            products: finalProductsList,
+            total: calculateTotal(state.reservations, finalProductsList)
+        };
+
+    case 'REMOVE_PRODUCT':
+        const productToRemoveId = action.payload.productId;
+        const remainingProducts = state.products.filter(
+            prod => prod._id !== productToRemoveId
+        );
+        return {
+            ...state,
+            products: remainingProducts,
+            total: calculateTotal(state.reservations, remainingProducts)
+        };
 
     case 'CLEAR_CART':
       return {
         ...state,
         reservations: [],
+        products: [],
         total: 0
       };
 
     case 'LOAD_FROM_STORAGE':
+      const loadedReservations = action.payload.reservations || [];
+        const loadedProducts = action.payload.products || [];
       return {
         ...state,
-        reservations: action.payload.reservations || [],
-        total: calculateTotal(action.payload.reservations || [])
+        reservations: loadedReservations,
+        products: loadedProducts,
+        total: calculateTotal(loadedReservations, loadedProducts)
       };
 
     default:
@@ -75,17 +117,26 @@ const cartReducer = (state, action) => {
 };
 
 // Función para calcular el total del carrito
-const calculateTotal = (reservations) => {
-  return reservations.reduce((total, reservation) => {
-    const seatCount = reservation.selectedSeats.length;
-    const pricePerSeat = reservation.precio || 0;
-    return total + (seatCount * pricePerSeat);
-  }, 0);
-};
+const calculateTotal = (reservations, products) => {
+    // Total de Reservas
+    const reservationsTotal = reservations.reduce((total, reservation) => {
+        const seatCount = reservation.selectedSeats.length;
+        const pricePerSeat = reservation.precio || 0;
+        return total + (seatCount * pricePerSeat);
+    }, 0);
+    // Total de Productos/Snacks
+    const productsTotal = products.reduce((total, product) => {
+        const quantity = product.cantidad || 0;
+        const pricePerItem = product.precio || 0;
+        return total + (quantity * pricePerItem);
+    }, 0);
 
+    return reservationsTotal + productsTotal; // Sumar ambos totales
+};
 // Estado inicial del carrito
 const initialState = {
   reservations: [],
+  products: [], 
   total: 0
 };
 
@@ -99,7 +150,10 @@ export const CartProvider = ({ children }) => {
     if (savedCart) {
       try {
         const parsedCart = JSON.parse(savedCart);
-        dispatch({ type: 'LOAD_FROM_STORAGE', payload: parsedCart });
+        dispatch({ type: 'LOAD_FROM_STORAGE', payload: { 
+                reservations: parsedCart.reservations,
+                products: parsedCart.products || [] 
+            } });
       } catch (error) {
         console.error('[Cart] Error al cargar carrito desde localStorage:', error);
       }
@@ -122,6 +176,17 @@ export const CartProvider = ({ children }) => {
     dispatch({ type: 'REMOVE_RESERVATION', payload: { reservationId } });
   };
 
+  const addProductsToCart = (productsList) => {
+        console.log('[Cart] Agregando/Actualizando productos:', productsList);
+        dispatch({ type: 'ADD_PRODUCTS', payload: { products: productsList } });
+    };
+
+    // Nueva Función: Eliminar Producto
+    const removeProduct = (productId) => {
+        console.log('[Cart] Eliminando producto:', productId);
+        dispatch({ type: 'REMOVE_PRODUCT', payload: { productId } });
+    };
+
   const clearCart = () => {
     console.log('[Cart] Limpiando carrito');
     dispatch({ type: 'CLEAR_CART' });
@@ -139,8 +204,11 @@ export const CartProvider = ({ children }) => {
 
   const value = {
     ...state,
+    products: state.products,
     addReservation,
     removeReservation,
+    addProductsToCart,
+    removeProduct,
     clearCart,
     getReservationCount,
     getTotalSeats
