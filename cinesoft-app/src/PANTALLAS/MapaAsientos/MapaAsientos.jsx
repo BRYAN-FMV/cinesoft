@@ -229,17 +229,17 @@ function MapaAsientos() {
 
     console.log('[MapaAsientos] Usuario autenticado, agregando reserva al carrito');
     
-    // Guardar los asientos como objetos {_id, codigo}
-    const selectedSeatObjs = selectedSeats.map(seatName => {
+    // Crear objeto de reserva usando los _id reales de los asientos
+    const selectedSeatIds = selectedSeats.map(seatName => {
       const asientoObj = asientosReal[seatName];
-      return asientoObj ? { _id: asientoObj._id, codigo: asientoObj.nombre } : { _id: seatName, codigo: seatName };
+      return asientoObj ? asientoObj._id : seatName;
     });
     const reservationData = {
       funcionId,
       movieTitle,
       selectedDay,
       selectedTime,
-      selectedSeats: selectedSeatObjs,
+      selectedSeats: selectedSeatIds,
       precio,
       idioma,
       sala: salaInfo || salaId || 'No especificada'
