@@ -9,6 +9,8 @@ import Cartelera from './PANTALLAS/Cartelera/cartelera.jsx'
 import DetallePelicula from './PANTALLAS/DetallePelicula/DetallePelicula.jsx'; 
 import MapaAsientos from './PANTALLAS/MapaAsientos/MapaAsientos.jsx';
 import Boletos from './PANTALLAS/Boletos/Boletos.jsx';
+import ResumenCompra from './PANTALLAS/ResumenCompra/ResumenCompra.jsx';
+import DetalleVenta from './PANTALLAS/DetalleVenta/DetalleVenta.jsx';
 import Login from './Auth/Login.jsx'
 import Register from './Auth/Register.jsx'
 import SplashScreen from './components/SplashScreen/SplashScreen.jsx';
@@ -23,8 +25,10 @@ createRoot(document.getElementById('root')).render(
           <Route path="/detalle/:id" element={<DetallePelicula />} />
           <Route path="/asientos/:id" element={<MapaAsientos />} />
           <Route path="/boletos/:id" element={<Boletos />} />
+          <Route path="/resumen" element={<ResumenCompra />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/venta/:id" element={<DetalleVenta />} />
         </Routes>
       </BrowserRouter>
     </CartProvider>

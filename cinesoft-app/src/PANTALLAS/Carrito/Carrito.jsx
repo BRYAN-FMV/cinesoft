@@ -86,7 +86,11 @@ const Carrito = ({ show, handleClose }) => {
                                     <div key={reservation.id} className="carrito-item-pure d-flex justify-content-between align-items-center mb-3 p-3 rounded">
                                         <div className="item-info">
                                             <p className="mb-0 text-white fw-bold">
-                                                {reservation.selectedSeats.join(', ')} ({reservation.selectedSeats.length} asiento{reservation.selectedSeats.length > 1 ? 's' : ''})
+                                                                                                {reservation.selectedSeats.map((asiento, idx) => (
+                                                                                                    <span key={asiento._id || idx} className="badge bg-secondary me-1">
+                                                                                                        {asiento.codigo}
+                                                                                                    </span>
+                                                                                                ))} ({reservation.selectedSeats.length} asiento{reservation.selectedSeats.length > 1 ? 's' : ''})
                                             </p>
                                             <small className="text-secondary">{reservation.movieTitle}</small><br />
                                             <small className="text-secondary">{reservation.selectedDay} a las {reservation.selectedTime}</small><br />
@@ -146,8 +150,11 @@ const Carrito = ({ show, handleClose }) => {
                             <h5 className="text-primary fw-bold">${total.toFixed(2)}</h5>
                         </div>
 
-                        <button className="btn-checkout">
-                            Finalizar Compra
+                        <button 
+                            className="btn-checkout"
+                            onClick={() => navigate('/resumen')}
+                        >
+                            Ver Resumen y Pagar
                         </button>
                     </>
                 )}

@@ -229,28 +229,31 @@ function MapaAsientos() {
 
     console.log('[MapaAsientos] Usuario autenticado, agregando reserva al carrito');
     
-    // Crear objeto de reserva
+    // Guardar los asientos como objetos {_id, codigo}
+    const selectedSeatObjs = selectedSeats.map(seatName => {
+      const asientoObj = asientosReal[seatName];
+      return asientoObj ? { _id: asientoObj._id, codigo: asientoObj.nombre } : { _id: seatName, codigo: seatName };
+    });
     const reservationData = {
       funcionId,
       movieTitle,
       selectedDay,
       selectedTime,
-      selectedSeats,
+      selectedSeats: selectedSeatObjs,
       precio,
       idioma,
       sala: salaInfo || salaId || 'No especificada'
     };
-    
     // Agregar al carrito
     addReservation(reservationData);
     
-    // Navegar al carrito o a una página de confirmación
+    // Mostrar mensaje de confirmación
     setAlertMessage(`¡Reserva agregada al carrito! ${selectedSeats.length} asiento(s) para ${movieTitle}`);
     
-    // Opcional: redirigir al carrito después de un delay
+    // Redirigir a la cartelera para que pueda seguir comprando o ir al carrito
     setTimeout(() => {
       navigate('/cartelera', { replace: true });
-    }, 2000);
+    }, 1500);
   };
 
   const renderSeatRow = (rowLetter) => {

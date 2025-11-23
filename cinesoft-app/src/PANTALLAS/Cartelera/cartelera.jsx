@@ -1,6 +1,7 @@
 // src/PANTALLAS/Cartelera/Cartelera.jsx
 
 import { useFetch } from '../../hooks/useFetch';
+import { useCart } from '../../context/CartContext.jsx';
 import { useState } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'; 
 import Carrito from '../Carrito/Carrito'; // Importa el componente Carrito
@@ -19,6 +20,9 @@ const Cartelera = () => {
     const [visibleCount1, setVisibleCount1] = useState(INITIAL_COUNT);
     const [visibleCount2, setVisibleCount2] = useState(INITIAL_COUNT);
     const [visibleCount3, setVisibleCount3] = useState(INITIAL_COUNT);
+    
+    // Cart context
+    const { reservations } = useCart();
     
     // 2. Estados y funciones para el Carrito
     // Usamos un query param (?carrito=1) para abrir el carrito sin cambiar de página
@@ -95,10 +99,16 @@ const Cartelera = () => {
                         <ul className="navbar-nav">
                         <li className="nav-item"><a className="nav-link" href="#peliculas-populares">Cartelera</a></li>
                         
-                        {/* Botón Carrito: usar la misma lógica que los demás enlaces (react-router Link) */}
+                        {/* Botón Carrito */}
                         <li className="nav-item">
-                            {/* Link a la misma página con query param para abrir el carrito sin ocultar la página */}
-                            <Link className="nav-link" to={`/cartelera?carrito=1`}>CARRITO</Link>
+                            <Link className="nav-link position-relative" to="/cartelera?carrito=1">
+                                <i className="bi bi-cart3"></i> Carrito
+                                {reservations.length > 0 && (
+                                    <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                        {reservations.length}
+                                    </span>
+                                )}
+                            </Link>
                         </li>
                         
                         </ul>
