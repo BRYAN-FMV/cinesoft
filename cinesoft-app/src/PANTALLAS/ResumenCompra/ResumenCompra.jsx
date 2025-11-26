@@ -9,6 +9,8 @@ function ResumenCompra() {
   const { reservations, products, total, clearCart } = useCart();
   const { token, user } = useAuth();
   const [procesando, setProcesando] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [numeroConfirmacion, setNumeroConfirmacion] = useState('');
 
   // Calcular subtotales y desglose
   const calcularDesglose = () => {
@@ -44,6 +46,13 @@ function ResumenCompra() {
   };
 
   const desglose = calcularDesglose();
+
+  // Función para generar número de confirmación
+  const generarNumeroConfirmacion = () => {
+    const timestamp = Date.now().toString().slice(-6);
+    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    return `CONF-${timestamp}${random}`;
+  };
 
   // Función para procesar el pago
   const handleProcesarPago = async () => {
@@ -137,9 +146,19 @@ function ResumenCompra() {
         }
       }
 
-      alert('¡Pago procesado exitosamente!');
+      // Generar número de confirmación
+      const confirmacion = generarNumeroConfirmacion();
+      setNumeroConfirmacion(confirmacion);
+
+      // Mostrar modal de éxito en lugar del alert
+      setShowSuccessModal(true);
       clearCart();
-      navigate('/cartelera');
+
+      // Redirigir automáticamente después de 8 segundos
+      setTimeout(() => {
+        setShowSuccessModal(false);
+        navigate('/cartelera');
+      }, 8000);
 
     } catch (error) {
       console.error('Error al procesar el pago:', error);
@@ -428,6 +447,102 @@ function ResumenCompra() {
           </div>
         </div>
       </div>
+
+      {/* Modal de confirmación de pago exitoso - MEJORADO */}
+      {showSuccessModal && (
+        <div className="modal-overlay">
+          <div className="success-modal">
+            <div className="success-modal-content">
+              <div className="success-icon">
+                <i className="bi bi-check-circle-fill"></i>
+              </div>
+              
+              <h2 className="success-title">¡Compra Exitosa!</h2>
+              
+              <div className="confirmation-badge">
+                <span className="confirmation-number">{numeroConfirmacion}</span>
+              </div>
+
+              <p className="success-message">
+                Tu compra ha sido procesada correctamente. 
+                <strong> Recibirás un correo electrónico</strong> con todos los detalles 
+                de tu pedido y los boletos para la función.
+              </p>
+
+              <div className="success-details">
+                <div className="detail-item">
+                  <span className="detail-label">Cliente:</span>
+                  <span className="detail-value">{user?.name}</span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Email:</span>
+                  <span className="detail-value">{user?.email}</span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Fecha de compra:</span>
+                  <span className="detail-value">{new Date().toLocaleDateString()}</span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Total de reservas:</span>
+                  <span className="detail-value">{reservations.length}</span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Total de productos:</span>
+                  <span className="detail-value">{products.length}</span>
+                </div>
+                <div className="detail-item total">
+                  <span className="detail-label">Monto total pagado:</span>
+                  <span className="detail-value">${desglose.totalFinal.toFixed(2)}</span>
+                </div>
+              </div>
+
+              <div className="success-instructions">
+                <h6 className="instructions-title">
+                  <i className="bi bi-info-circle me-2"></i>
+                  ¿Qué sigue?
+                </h6>
+                <ul className="instructions-list">
+                  <li>Revisa tu correo electrónico para obtener tus boletos</li>
+                  <li>Presenta tu código QR al ingresar al cine</li>
+                  <li>Llega 30 minutos antes de la función</li>
+                  <li>Disfruta de tu película y snacks</li>
+                </ul>
+              </div>
+
+              <div className="success-actions">
+                <button 
+                  className="btn btn-primary"
+                  onClick={() => {
+                    setShowSuccessModal(false);
+                    navigate('/cartelera');
+                  }}
+                >
+                  <i className="bi bi-film me-2"></i>
+                  Ver Más Películas
+                </button>
+                
+                <button 
+                  className="btn btn-outline-light"
+                  onClick={() => {
+                    setShowSuccessModal(false);
+                    navigate('/mis-reservas');
+                  }}
+                >
+                  <i className="bi bi-ticket-perforated me-2"></i>
+                  Mis Reservas
+                </button>
+              </div>
+
+              <div className="success-footer">
+                <small className="text-secondary">
+                  <i className="bi bi-clock me-1"></i>
+                  Serás redirigido automáticamente en 8 segundos
+                </small>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="footer bg-dark text-white text-center p-3 mt-5">
