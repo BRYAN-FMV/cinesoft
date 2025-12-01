@@ -12,7 +12,7 @@ function DetallePelicula() {
   // CORRECCIÓN 1: Validación robusta para evitar la llamada al backend con ID 'undefined'
   if (!id || id === 'undefined') return <div className="text-center">ID de película no especificado.</div>
 
-  const { data, loading, error } = useFetch(`http://localhost:3000/peliculas/${id}`)
+  const { data, loading, error } = useFetch(`https://cine-web-api-tobi.vercel.app/peliculas/${id}`)
 
   useEffect(() => {
     console.log('[DetallePelicula] /peliculas/:id ->', data)
@@ -179,7 +179,7 @@ function DetallePelicula() {
     setErrorHorarios(null)
     
     // Usar el endpoint implementado: GET /funciones?pelicula=:id
-    fetch(`http://localhost:3000/funciones?pelicula=${id}`)
+    fetch(`https://cine-web-api-tobi.vercel.app/funciones?pelicula=${id}`)
       .then(async (res) => {
         if (!res.ok) {
           throw new Error(`Error HTTP ${res.status}: No se pudieron cargar las funciones`)

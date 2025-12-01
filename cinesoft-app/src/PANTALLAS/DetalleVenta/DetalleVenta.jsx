@@ -14,13 +14,13 @@ function DetalleVenta() {
       setLoading(true);
       try {
         // Encabezado
-        const resEnc = await fetch(`http://localhost:3000/ventaEnc/${id}`);
+        const resEnc = await fetch(`https://cine-web-api-tobi.vercel.app/ventaEnc/${id}`);
         if (!resEnc.ok) throw new Error('No se encontró la venta');
         const ventaData = await resEnc.json();
         setVenta(ventaData);
 
         // Detalles
-        const resDet = await fetch(`http://localhost:3000/ventaDet?ventaEnc=${id}`);
+        const resDet = await fetch(`https://cine-web-api-tobi.vercel.app/ventaDet?ventaEnc=${id}`);
         if (!resDet.ok) throw new Error('No se encontraron los detalles');
         const detallesData = await resDet.json();
         setDetalles(detallesData);
