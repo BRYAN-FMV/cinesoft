@@ -20,7 +20,7 @@ const Login = () => {
     setLoading(true)
     try {
       // Endpoint asumido: http://localhost:3000/usuarios/login
-      const res = await fetch('https://cine-web-api-tobi.vercel.app/usuarios/login', {
+      const res = await fetch('https://cine-web-api-tobi.vercel.app/api/usuarios/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })

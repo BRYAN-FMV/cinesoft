@@ -108,7 +108,7 @@ function ResumenCompra() {
         total: desglose.totalFinal
       };
 
-      const responseEnc = await fetch('https://cine-web-api-tobi.vercel.app/ventaEnc', {
+      const responseEnc = await fetch('https://cine-web-api-tobi.vercel.app/api/ventaEnc', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -132,7 +132,7 @@ function ResumenCompra() {
           ...detalle
         };
         console.log('Enviando detalle:', detalleData);
-        const responseDet = await fetch('https://cine-web-api-tobi.vercel.app/ventaDet', {
+        const responseDet = await fetch('https://cine-web-api-tobi.vercel.app/api/ventaDet', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'

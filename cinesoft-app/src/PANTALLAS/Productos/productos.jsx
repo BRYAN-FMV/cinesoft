@@ -15,7 +15,7 @@ const Productos = ({ onClose, onAddToCart }) => {
 
     useEffect(() => {
         console.log('Iniciando carga de productos...')
-        fetch('https://cine-web-api-tobi.vercel.app/productos')
+        fetch('https://cine-web-api-tobi.vercel.app/api/productos')
             .then(res => {
                 console.log('Respuesta recibida:', res.status)
                 if (!res.ok) throw new Error('Error al cargar productos')

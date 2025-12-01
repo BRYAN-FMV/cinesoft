@@ -39,7 +39,7 @@ function MapaAsientos() {
   console.log('[MapaAsientos] Parámetros URL:', { selectedDay, selectedTime, movieTitle, movieId });
 
   // Usar el endpoint real para obtener asientos de la función
-  const endpointUrl = `https://cine-web-api-tobi.vercel.app/funciones/${funcionId}/asientos`;
+  const endpointUrl = `https://cine-web-api-tobi.vercel.app/api/funciones/${funcionId}/asientos`;
   console.log('[MapaAsientos] Consultando endpoint:', endpointUrl);
   
   const { data: asientosData, loading, error } = useFetch(endpointUrl);
