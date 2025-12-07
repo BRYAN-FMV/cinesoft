@@ -267,7 +267,7 @@ function ResumenCompra() {
 
       {/* Contenido principal */}
       <div className="container-fluid content-wrapper">
-        <div className="row g-0 d-flex align-items-start">
+        <div className="row g-4 justify-content-center">
           {/* Columna izquierda - Detalles de reservas */}
           <div className="col-lg-7 col-12">
             <div className="card bg-dark text-white mb-4">
