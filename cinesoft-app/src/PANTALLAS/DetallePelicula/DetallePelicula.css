@@ -1,8 +1,11 @@
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+  width: 100%;
+  max-width: 100vw;
+  margin: 0;
+  padding: 0;
   text-align: center;
+  overflow-x: hidden;
+  background-color: #030303;
 }
 
 .movies-section {
@@ -552,6 +555,25 @@
 
 /* Responsive para horarios */
 @media (max-width: 768px) {
+  #root {
+    padding: 0;
+  }
+  
+  .movies-section {
+    padding: 0.5rem;
+    margin: 1rem 0;
+  }
+  
+  .movies-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+    padding: 0 0.5rem;
+  }
+  
+  .movie-poster {
+    height: 300px;
+  }
+  
   .times-grid {
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 8px;
@@ -564,5 +586,16 @@
   
   .funcion-hora {
     font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .movies-grid {
+    grid-template-columns: 1fr;
+    padding: 0 0.5rem;
+  }
+  
+  .movie-card {
+    max-width: 100%;
   }
 }
