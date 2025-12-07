@@ -2,24 +2,21 @@
 
 import { useFetch } from '../../hooks/useFetch';
 import { useCart } from '../../context/CartContext.jsx';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'; 
+import Navbar from '../../components/Navbar/Navbar.jsx';
 import Carrito from '../Carrito/Carrito'; // Importa el componente Carrito
 import './cartelera.css';
 
 // --- Constantes de configuración ---
 const INITIAL_COUNT = 4;
 const LOAD_INCREMENT = 4;
-const MAS_VISTAS_SIZE = 4;
-const ACCION_SIZE = 4;
-const ESTRENO_SIZE = 4;
 // ---------------------------------
 
 const Cartelera = () => {
-    // 1. Estados de paginación
-    const [visibleCount1, setVisibleCount1] = useState(INITIAL_COUNT);
-    const [visibleCount2, setVisibleCount2] = useState(INITIAL_COUNT);
-    const [visibleCount3, setVisibleCount3] = useState(INITIAL_COUNT);
+    // Estados para el carrusel
+    const [currentSlide, setCurrentSlide] = useState(0);
+    const [peliculasProximasSemana, setPeliculasProximasSemana] = useState([]);
     
     // Cart context
     const { reservations } = useCart();
@@ -43,33 +40,69 @@ const Cartelera = () => {
     };
 
     // 3. Hook para obtener datos
-    const { data: peliculas, loading, error } = useFetch("http://localhost:3000/peliculas");
+    const { data: peliculas, loading, error } = useFetch("https://cine-web-api-tobi.vercel.app/api/peliculas");
+    const { data: funciones, loading: loadingFunciones } = useFetch("https://cine-web-api-tobi.vercel.app/api/funciones");
 
-    const loadMore = (setCurrentCount, currentTotal) => {
-        setCurrentCount(prevCount => Math.min(prevCount + LOAD_INCREMENT, currentTotal));
+    // 4. Efecto para filtrar películas con funciones en la próxima semana
+    useEffect(() => {
+        if (peliculas && funciones && peliculas.length > 0 && funciones.length > 0) {
+            // Usar solo la fecha (sin horas) para comparar
+            const hoy = new Date();
+            const fechaHoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()); // Inicio del día de hoy
+            const proximaSemana = new Date(fechaHoy);
+            proximaSemana.setDate(fechaHoy.getDate() + 7); // 7 días desde hoy
+
+            // Filtrar funciones de la próxima semana (solo futuras o de hoy)
+            const funcionesProximaSemana = funciones.filter(funcion => {
+                if (!funcion.horario) return false;
+                const fechaFuncion = new Date(funcion.horario);
+                return fechaFuncion >= fechaHoy && fechaFuncion < proximaSemana;
+            });
+
+            // Obtener IDs únicos de películas con funciones próximas
+            const peliculasIdsProximas = [...new Set(funcionesProximaSemana.map(funcion => {
+                return typeof funcion.pelicula === 'object' ? funcion.pelicula._id : funcion.pelicula;
+            }))];
+            
+            // Filtrar películas que tienen funciones próximas
+            const peliculasFiltradas = peliculas.filter(pelicula => 
+                peliculasIdsProximas.includes(pelicula._id)
+            );
+            
+            setPeliculasProximasSemana(peliculasFiltradas);
+        }
+    }, [peliculas, funciones]);
+
+    // 5. Funciones del carrusel
+    const nextSlide = () => {
+        setCurrentSlide((prev) => 
+            prev === peliculasProximasSemana.length - 1 ? 0 : prev + 1
+        );
     };
 
-    // 4. Manejo de estados de carga/error
-    if (loading) return <div className="text-center mt-5 text-white">Cargando cartelera...</div>;
+    const prevSlide = () => {
+        setCurrentSlide((prev) => 
+            prev === 0 ? peliculasProximasSemana.length - 1 : prev - 1
+        );
+    };
+
+    // 6. Manejo de estados de carga/error
+    if (loading || loadingFunciones) return <div className="text-center mt-5 text-white">Cargando cartelera...</div>;
     if (error) return <div className="text-center mt-5 text-danger">Error: {error.message}. Verifica API.</div>;
     if (!peliculas || peliculas.length === 0) return <div className="text-center mt-5 text-white">No hay películas disponibles.</div>;
 
-    // 5. Lógica de filtrado y duplicación de películas
+    // 7. Lógica de filtrado y duplicación de películas
     let peliculasRepetidas = peliculas;
     if (peliculas.length === 1) {
         peliculasRepetidas = Array(12).fill(peliculas[0]);
     }
 
     const todasLasPeliculas = peliculasRepetidas;
-
     const primeraPelicula = todasLasPeliculas[0] || null;
-    const peliculasMasVistas = todasLasPeliculas.slice(1, 1 + MAS_VISTAS_SIZE);
-    const peliculasAccion = todasLasPeliculas.slice(1 + MAS_VISTAS_SIZE, 1 + MAS_VISTAS_SIZE + ACCION_SIZE);
-    const peliculasEstreno = todasLasPeliculas.slice(1 + MAS_VISTAS_SIZE + ACCION_SIZE, 1 + MAS_VISTAS_SIZE + ACCION_SIZE + ESTRENO_SIZE);
     
     const headerBackgroundImage = primeraPelicula && primeraPelicula.poster ? primeraPelicula.poster : '';
 
-    // 6. Componente de tarjeta de película
+    // 8. Componente de tarjeta de película
     const MovieCard = ({ pelicula, boxClass, index }) => (
         <div key={pelicula._id ? pelicula._id : `movie-dup-${index}`} className={boxClass}>
             <div className="content">
@@ -88,40 +121,11 @@ const Cartelera = () => {
     return (
         <>
             {/* NAVBAR */}
-            <nav className="navbar navbar-expand-lg navbar-dark bg-dark">
-                <div className="container-fluid">
-                    <div className="container align-items-center">
-                        <Link className="navbar-brand logo" to="/">CINESOFT</Link>
-                        <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                            <span className="navbar-toggler-icon"></span>
-                        </button>
-                        <div className="collapse navbar-collapse" id="navbarNav">
-                        <ul className="navbar-nav">
-                        <li className="nav-item"><a className="nav-link" href="#peliculas-populares">Cartelera</a></li>
-                        
-                        {/* Botón Carrito */}
-                        <li className="nav-item">
-                            <Link className="nav-link position-relative" to="/cartelera?carrito=1">
-                                <i className="bi bi-cart3"></i> Carrito
-                                {reservations.length > 0 && (
-                                    <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                                        {reservations.length}
-                                    </span>
-                                )}
-                            </Link>
-                        </li>
-                        
-                        </ul>
-
-                        <ul className="navbar-nav ms-auto">
-                        <li className="nav-item"><Link className="nav-link" to="/login">Iniciar sesión</Link></li>
-                        <li className="nav-item"><Link className="nav-link" to="/register">Registro</Link></li>
-                        </ul>
-                    </div>
-
-                    </div>
-                </div>
-            </nav>
+            <Navbar 
+                cartCount={reservations.length} 
+                showCartBadge={true} 
+                variant="fixed" 
+            />
 
             {/* HEADER */}
             {primeraPelicula && (
@@ -143,53 +147,120 @@ const Cartelera = () => {
                 </header>
             )}
 
-            {/* SECCIÓN 1: MÁS VISTAS */}
-            <section id="peliculas-populares" className="movies container">
-                <h2>Películas más vistas</h2>
-                <hr />
-                <div className="box-container-1">
-                    {peliculasMasVistas.slice(0, visibleCount1).map((pelicula, index) => (
-                        <MovieCard pelicula={pelicula} boxClass="box-1" index={index} key={index} />
-                    ))}
-                </div>
-                {visibleCount1 < peliculasMasVistas.length && (
-                    <div style={{textAlign: 'center', marginBottom: '30px'}}>
-                        <button onClick={() => loadMore(setVisibleCount1, peliculasMasVistas.length)} className="btn btn-primary">Cargar más</button>
+            {/* CARRUSEL DE PELÍCULAS CON FUNCIONES PRÓXIMAS */}
+            {peliculasProximasSemana.length > 0 && (
+                <section className="carousel-section mt-5 mb-5">
+                    <h2 className="text-white text-center mb-4">Funciones de esta semana</h2>
+                    <div className="carousel-container position-relative">
+                        <div className="carousel-wrapper overflow-hidden">
+                            <div 
+                                className="carousel-track d-flex transition-transform"
+                                style={{ 
+                                    transform: `translateX(-${currentSlide * 100}%)`,
+                                    transition: 'transform 0.3s ease-in-out'
+                                }}
+                            >
+                                {peliculasProximasSemana.map((pelicula, index) => (
+                                    <div key={pelicula._id} className="carousel-slide flex-shrink-0 w-100">
+                                        <div className="row align-items-center">
+                                            <div className="col-md-4">
+                                                <img 
+                                                    src={pelicula.poster} 
+                                                    alt={pelicula.titulo}
+                                                    className="img-fluid rounded shadow"
+                                                    style={{ maxHeight: '400px', width: '100%', objectFit: 'cover' }}
+                                                />
+                                            </div>
+                                            <div className="col-md-8 text-white">
+                                                <h3 className="mb-3">{pelicula.titulo}</h3>
+                                                <p className="text-secondary mb-2">
+                                                    <i className="bi bi-film"></i> {pelicula.genero}
+                                                </p>
+                                                <p className="text-secondary mb-2">
+                                                    <i className="bi bi-clock"></i> {pelicula.duracion} min
+                                                </p>
+                                                <p className="text-secondary mb-2">
+                                                    <i className="bi bi-star"></i> {pelicula.clasificacion}
+                                                </p>
+                                                <p className="mb-4">{pelicula.sinopsis}</p>
+                                                <Link 
+                                                    to={`/detalle/${pelicula._id}`} 
+                                                    className="btn btn-primary btn-lg"
+                                                >
+                                                    <i className="bi bi-play-fill"></i> Ver Funciones
+                                                </Link>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        
+                        {/* Botones de navegación */}
+                        <button 
+                            className="carousel-btn carousel-btn-prev position-absolute"
+                            onClick={prevSlide}
+                            style={{
+                                left: '10px',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                background: 'rgba(0,0,0,0.7)',
+                                border: 'none',
+                                borderRadius: '50%',
+                                width: '50px',
+                                height: '50px',
+                                color: 'white',
+                                fontSize: '18px',
+                                cursor: 'pointer',
+                                zIndex: 10
+                            }}
+                        >
+                            <i className="bi bi-chevron-left"></i>
+                        </button>
+                        
+                        <button 
+                            className="carousel-btn carousel-btn-next position-absolute"
+                            onClick={nextSlide}
+                            style={{
+                                right: '10px',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                background: 'rgba(0,0,0,0.7)',
+                                border: 'none',
+                                borderRadius: '50%',
+                                width: '50px',
+                                height: '50px',
+                                color: 'white',
+                                fontSize: '18px',
+                                cursor: 'pointer',
+                                zIndex: 10
+                            }}
+                        >
+                            <i className="bi bi-chevron-right"></i>
+                        </button>
+                        
+                        {/* Indicadores */}
+                        <div className="carousel-indicators text-center mt-3">
+                            {peliculasProximasSemana.map((_, index) => (
+                                <button
+                                    key={index}
+                                    className={`carousel-indicator ${index === currentSlide ? 'active' : ''}`}
+                                    onClick={() => setCurrentSlide(index)}
+                                    style={{
+                                        width: '12px',
+                                        height: '12px',
+                                        borderRadius: '50%',
+                                        border: 'none',
+                                        margin: '0 5px',
+                                        background: index === currentSlide ? '#007bff' : 'rgba(255,255,255,0.5)',
+                                        cursor: 'pointer'
+                                    }}
+                                ></button>
+                            ))}
+                        </div>
                     </div>
-                )}
-            </section>
-
-            {/* SECCIÓN 2: ACCIÓN */}
-            <section className="movies container">
-                <h2>Películas de Acción</h2>
-                <hr />
-                <div className="box-container-2">
-                    {peliculasAccion.slice(0, visibleCount2).map((pelicula, index) => (
-                        <MovieCard pelicula={pelicula} boxClass="box-2" index={index} key={index} />
-                    ))}
-                </div>
-                {visibleCount2 < peliculasAccion.length && (
-                    <div style={{textAlign: 'center', marginBottom: '30px'}}>
-                        <button onClick={() => loadMore(setVisibleCount2, peliculasAccion.length)} className="btn btn-primary">Cargar más</button>
-                    </div>
-                )}
-            </section>
-
-            {/* SECCIÓN 3: ESTRENO */}
-            <section className="movies container">
-                <h2>Películas Estreno</h2>
-                <hr />
-                <div className="box-container-3">
-                    {peliculasEstreno.slice(0, visibleCount3).map((pelicula, index) => (
-                        <MovieCard pelicula={pelicula} boxClass="box-3" index={index} key={index} />
-                    ))}
-                </div>
-                {visibleCount3 < peliculasEstreno.length && (
-                    <div style={{textAlign: 'center', marginBottom: '30px'}}>
-                        <button onClick={() => loadMore(setVisibleCount3, peliculasEstreno.length)} className="btn btn-primary">Cargar más</button>
-                    </div>
-                )}
-            </section>
+                </section>
+            )}
 
             {/* FOOTER */}
             <footer className="footer">

@@ -4,6 +4,7 @@ import './MapaAsientos.css';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useFetch } from '../../hooks/useFetch.js';
 import { useCart } from '../../context/CartContext.jsx';
+import Navbar from '../../components/Navbar/Navbar';
 
 // --- Constantes de la Sala ---
 const SEAT_LAYOUT = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
@@ -35,6 +36,8 @@ function MapaAsientos() {
   
   // Estado para almacenar información de la sala
   const [salaInfo, setSalaInfo] = useState(null);
+  // Estado para refrescar asientos
+  const [refreshSeats, setRefreshSeats] = useState(0);
 
   console.log('[MapaAsientos] Parámetros URL:', { selectedDay, selectedTime, movieTitle, movieId });
 
@@ -78,12 +81,14 @@ function MapaAsientos() {
           if (Array.isArray(asientosFila)) {
             asientosFila.forEach(asiento => {
               const nombreAsiento = asiento.codigo || `${asiento.fila}${asiento.numero}`;
+              const estadoFinal = asiento.estadoFuncion || asiento.estado || 'disponible';
               const asientoNormalizado = {
                 _id: asiento._id,
                 nombre: nombreAsiento,
-                estado: asiento.estadoFuncion || 'disponible',
+                estado: estadoFinal,
                 fila: asiento.fila,
-                numero: asiento.numero
+                numero: asiento.numero,
+                originalData: asiento // Para debug
               };
               
               console.log('[MapaAsientos] Procesando asiento individual:', asientoNormalizado);
@@ -115,10 +120,11 @@ function MapaAsientos() {
         console.log('[MapaAsientos] Procesando', asientos.length, 'asientos reales del backend');
         const asientosMap = asientos.reduce((acc, asiento) => {
           // Asegurar que cada asiento tiene las propiedades necesarias
+          const estadoFinal = asiento.estadoFuncion || asiento.estado || 'disponible';
           const asientoNormalizado = {
             _id: asiento._id || asiento.id,
             nombre: asiento.nombre || asiento.codigo || `${asiento.fila}${asiento.numero}` || asiento._id,
-            estado: asiento.estado || asiento.estadoFuncion || 'disponible',
+            estado: estadoFinal,
             originalData: asiento // Guardar datos originales para debug
           };
           
@@ -160,6 +166,37 @@ function MapaAsientos() {
     console.log('[MapaAsientos] === FIN DEBUG ===');
   }, [asientosData]);
 
+  // Función para refrescar estado de asientos
+  const refreshSeatsState = async () => {
+    try {
+      console.log('[MapaAsientos] Refrescando estado de asientos para función:', funcionId);
+      const response = await fetch(`https://cine-web-api-tobi.vercel.app/api/funciones/${funcionId}/asientos`);
+      if (response.ok) {
+        const freshData = await response.json();
+        console.log('[MapaAsientos] Asientos actualizados desde servidor:', freshData);
+        
+        // Forzar re-procesamiento de datos actualizados
+        if (freshData && Object.keys(freshData).length > 0) {
+          // Llamar directamente al useEffect que procesa los datos
+          console.log('[MapaAsientos] Forzando actualización con datos frescos');
+          // Simular cambio en asientosData para que se dispare el useEffect
+          setRefreshSeats(prev => prev + 1);
+          
+          // TODO: Aquí deberíamos actualizar asientosData directamente, pero por ahora forzamos refresh
+          window.location.reload(); // Reload temporal hasta arreglar el state management
+        }
+      }
+    } catch (error) {
+      console.error('[MapaAsientos] Error al refrescar asientos:', error);
+    }
+  };
+
+  // Auto-refresh cada 30 segundos para mantener sincronizado el estado
+  useEffect(() => {
+    const interval = setInterval(refreshSeatsState, 30000);
+    return () => clearInterval(interval);
+  }, [funcionId]);
+
   // Extraer información de la sala desde los datos del backend
   useEffect(() => {
     if (asientosData && asientosData.funcion && asientosData.funcion.sala) {
@@ -179,7 +216,21 @@ function MapaAsientos() {
     
     setAlertMessage('');
     const asientoObj = asientosReal[seatId];
-    if (!asientoObj || asientoObj.estado !== 'disponible') return;
+    
+    // Verificación más estricta del estado del asiento
+    if (!asientoObj) {
+      console.warn(`[MapaAsientos] Asiento ${seatId} no encontrado en asientosReal`);
+      setAlertMessage(`El asiento ${seatId} no está disponible.`);
+      return;
+    }
+    
+    // Verificar todos los estados posibles de no disponibilidad
+    const estadosNoDisponibles = ['vendido', 'reservado', 'ocupado', 'mantenimiento'];
+    if (asientoObj.estado !== 'disponible' || estadosNoDisponibles.includes(asientoObj.estado)) {
+      console.warn(`[MapaAsientos] Asiento ${seatId} está en estado: ${asientoObj.estado}`);
+      setAlertMessage(`El asiento ${seatId} ya está ocupado o no está disponible.`);
+      return;
+    }
 
     if (selectedSeats.includes(seatId)) {
       setSelectedSeats(selectedSeats.filter(seat => seat !== seatId));
@@ -229,17 +280,20 @@ function MapaAsientos() {
 
     console.log('[MapaAsientos] Usuario autenticado, agregando reserva al carrito');
     
-    // Crear objeto de reserva usando los _id reales de los asientos
-    const selectedSeatIds = selectedSeats.map(seatName => {
+    // Crear objeto de reserva con información completa de los asientos
+    const selectedSeatsData = selectedSeats.map(seatName => {
       const asientoObj = asientosReal[seatName];
-      return asientoObj ? asientoObj._id : seatName;
+      return {
+        _id: asientoObj ? asientoObj._id : seatName,
+        codigo: seatName // El código visual (A1, B2, etc.)
+      };
     });
     const reservationData = {
       funcionId,
       movieTitle,
       selectedDay,
       selectedTime,
-      selectedSeats: selectedSeatIds,
+      selectedSeats: selectedSeatsData,
       precio,
       idioma,
       sala: salaInfo || salaId || 'No especificada'
@@ -293,8 +347,20 @@ function MapaAsientos() {
           const isSelected = selectedSeats.includes(seatId);
 
           let btnClass = 'btn seat-button';
-          if (isOccupied) {
+          let isDisabled = false;
+          
+          // Debug del estado del asiento  
+          console.log(`[MapaAsientos] Asiento ${seatId}:`, {
+            estado: asiento.estado,
+            estadoOriginal: asiento.originalData?.estadoFuncion,
+            ocupado: isOccupied,
+            seleccionado: isSelected
+          });
+          
+          // Verificar si está ocupado (vendido, reservado, etc)
+          if (isOccupied || asiento.estado === 'vendido' || asiento.estado === 'reservado') {
             btnClass += ' btn-danger disabled';
+            isDisabled = true;
           } else if (isSelected) {
             btnClass += ' btn-success';
           } else {
@@ -310,10 +376,14 @@ function MapaAsientos() {
             <React.Fragment key={seatId}>
               <button
                 className={`${btnClass} m-1`}
-                onClick={(e) => !isOccupied && toggleSeat(seatId, e)}
-                disabled={isOccupied}
+                onClick={(e) => !isDisabled && toggleSeat(seatId, e)}
+                disabled={isDisabled}
+                style={{
+                  cursor: isDisabled ? 'not-allowed' : 'pointer',
+                  opacity: isDisabled ? 0.6 : 1
+                }}
               >
-                {asiento.nombre || seatId}
+                {seatId}
               </button>
               {spacingElement}
             </React.Fragment>
@@ -375,48 +445,10 @@ function MapaAsientos() {
   return (
     <React.Fragment>
       {/* NAVBAR */}
-      <nav className="navbar cinesoft-nav">
-        <div className="container-fluid">
-          <div className="container align-items-center d-flex position-relative">
-            {/* BOTÓN ATRÁS (Corregido) */}
-            <div className="me-3">
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  navigate(`/detalle/${movieId}`, { replace: true });
-                }}
-                className="nav-btn-atras"
-                aria-label="Atrás"
-              >
-                Atrás
-              </button>
-            </div>
-
-            {/* LOGO */}
-            <span className="navbar-brand logo me-auto">
-              CINESOFT
-            </span>
-
-            {/* PERFIL */}
-            <div className="d-flex align-items-center ms-auto">
-              <Link 
-                to="/perfil" 
-                className="nav-btn-perfil" 
-                aria-label="Perfil de usuario"
-                onClick={(e) => {
-                  e.stopPropagation();
-                }}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
-                  <path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H3z" />
-                  <path fillRule="evenodd" d="M8 8a3 3 0 100-6 3 3 0 000 6z" />
-                </svg>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar 
+        cartCount={selectedSeats.length} 
+        showCartBadge={true} 
+      />
 
       {/* CONTENIDO PRINCIPAL */}
       <div className="container my-5 content-wrapper page-content-offset mb-5">
@@ -446,6 +478,16 @@ function MapaAsientos() {
               <div className="seat-legend"><span className="seat-color bg-primary"></span>Disponible</div>
               <div className="seat-legend"><span className="seat-color bg-success"></span>Seleccionado</div>
               <div className="seat-legend"><span className="seat-color bg-danger"></span>Ocupado</div>
+            </div>
+
+            {/* Info de debug */}
+            <div className="mt-3">
+              <small className="text-secondary">
+                🔍 Debug: función {funcionId} | {Object.keys(asientosReal).length} asientos cargados
+                {process.env.NODE_ENV === 'development' && (
+                  <><br/>endpoint: {endpointUrl}</>
+                )}
+              </small>
             </div>
 
             {/* Mensaje de alerta */}

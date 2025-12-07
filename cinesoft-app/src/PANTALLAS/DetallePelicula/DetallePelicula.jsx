@@ -1,10 +1,13 @@
 import { useFetch } from '../../hooks/useFetch'
 import { useEffect, useState } from 'react'
 import { useParams, Link, useSearchParams } from 'react-router-dom' // Importado useSearchParams
+import { useCart } from '../../context/CartContext'
+import Navbar from '../../components/Navbar/Navbar'
 import './DetallePelicula.css'
 
 function DetallePelicula() {
   const { id } = useParams()
+  const { reservations } = useCart()
   
   const [searchParams] = useSearchParams(); // Obtenemos los parámetros de búsqueda de la URL
   const peliculaId = id; 
@@ -13,10 +16,6 @@ function DetallePelicula() {
   if (!id || id === 'undefined') return <div className="text-center">ID de película no especificado.</div>
 
   const { data, loading, error } = useFetch(`https://cine-web-api-tobi.vercel.app/api/peliculas/${id}`)
-
-  useEffect(() => {
-    console.log('[DetallePelicula] /peliculas/:id ->', data)
-  }, [data])
 
   // si por alguna razón el backend responde con array, tomamos el primer elemento
   const pelicula = Array.isArray(data) ? data[0] : data
@@ -72,7 +71,11 @@ function DetallePelicula() {
     for (let i = 0; i < n; i++) {
       const d = new Date(today)
       d.setDate(today.getDate() + i)
-      const iso = d.toISOString().slice(0, 10)
+      // Usar fecha local en lugar de UTC
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const iso = `${year}-${month}-${day}`;
       
       // Etiquetas más descriptivas
       let label, shortLabel, dayType
@@ -112,12 +115,12 @@ function DetallePelicula() {
     return days
   }
 
-  const dias = getNextDays(14) // 2 semanas de opciones
+  // Solo mostrar los próximos 7 días por defecto
+  const dias = getNextDays(7)
 
   // Función para filtrar días según el filtro activo
   const getFilteredDays = () => {
     let filtered = []
-    
     switch (dayFilter) {
       case 'hoy':
         filtered = dias.filter(d => d.dayType === 'today')
@@ -133,10 +136,10 @@ function DetallePelicula() {
         break
       case 'todos':
       default:
-        filtered = showAllDays ? dias : dias.slice(0, 7) // Primeros 7 días por defecto
+        // Mostrar todos los días cuando no hay datos o mostrar solo los que tienen funciones
+        filtered = dias
         break
     }
-    
     return filtered
   }
 
@@ -187,23 +190,45 @@ function DetallePelicula() {
         return res.json()
       })
       .then((funciones) => {
-        console.log('[DetallePelicula] Funciones recibidas:', funciones)
-
         if (!Array.isArray(funciones)) {
           throw new Error("El endpoint debe devolver un array de funciones")
         }
 
         if (funciones.length === 0) {
-          console.log('[DetallePelicula] No hay funciones programadas para esta película')
-          setHorariosPorDia({}) // No mostrar horarios falsos
-          return // No lanzar error, solo no mostrar horarios
+          setHorariosPorDia({})
+          return
+        }
+
+        // Filtrar solo funciones futuras o de hoy (no pasadas)
+        const hoy = new Date();
+        const year = hoy.getFullYear();
+        const month = String(hoy.getMonth() + 1).padStart(2, '0');
+        const day = String(hoy.getDate()).padStart(2, '0');
+        const fechaHoyString = `${year}-${month}-${day}`;
+        
+        const funcionesFuturas = funciones.filter((funcion) => {
+          const fechaFuncion = new Date(funcion.horario);
+          const yearF = fechaFuncion.getFullYear();
+          const monthF = String(fechaFuncion.getMonth() + 1).padStart(2, '0');
+          const dayF = String(fechaFuncion.getDate()).padStart(2, '0');
+          const fechaFuncionString = `${yearF}-${monthF}-${dayF}`;
+          return fechaFuncionString >= fechaHoyString;
+        });
+
+        if (funcionesFuturas.length === 0) {
+          setHorariosPorDia({})
+          return
         }
 
         // Procesar funciones y agrupar por día
         const map = {}
-        funciones.forEach((funcion) => {
+        funcionesFuturas.forEach((funcion) => {
           const fechaHorario = new Date(funcion.horario)
-          const day = fechaHorario.toISOString().slice(0, 10) // "2025-11-12"
+          // Usar fecha local en lugar de UTC
+          const yearF = fechaHorario.getFullYear();
+          const monthF = String(fechaHorario.getMonth() + 1).padStart(2, '0');
+          const dayF = String(fechaHorario.getDate()).padStart(2, '0');
+          const day = `${yearF}-${monthF}-${dayF}`; // "2025-12-06"
           const time = fechaHorario.toLocaleTimeString("es-ES", {
             hour: "2-digit",
             minute: "2-digit",
@@ -230,13 +255,16 @@ function DetallePelicula() {
         })
         
         setHorariosPorDia(map)
-        console.log('[DetallePelicula] Funciones procesadas:', map)
         
-        // Autoseleccionar el primer día con funciones si no hay día seleccionado
+        // Autoseleccionar el primer día con funciones en los próximos 7 días si no hay día seleccionado
         if (!selectedDay) {
-          const diasConFunciones = Object.keys(map)
+          const diasConFunciones = Object.keys(map).filter(dia => dias.some(d => d.iso === dia))
           if (diasConFunciones.length > 0) {
-            const hoy = new Date().toISOString().slice(0, 10)
+            const hoyDate = new Date();
+            const yearH = hoyDate.getFullYear();
+            const monthH = String(hoyDate.getMonth() + 1).padStart(2, '0');
+            const dayH = String(hoyDate.getDate()).padStart(2, '0');
+            const hoy = `${yearH}-${monthH}-${dayH}`;
             const diaInicial = diasConFunciones.includes(hoy) ? hoy : diasConFunciones[0]
             setSelectedDay(diaInicial)
           }
@@ -296,47 +324,7 @@ function DetallePelicula() {
 
   return (
     <>
-      <nav className="navbar navbar-expand-lg navbar-dark bg-dark" onClick={(e) => e.stopPropagation()}>
-        <div className="container-fluid">
-          <div className="container align-items-center d-flex">
-            {/* BOTÓN ATRÁS en la izquierda */}
-            <div className="me-3">
-              <Link 
-                to="/" 
-                className="btn-link" 
-                aria-label="Atrás"
-                onClick={handleNavClick}
-              >
-                Atrás
-              </Link>
-            </div>
-
-            {/* LOGO / TITULO */}
-            <Link className="navbar-brand logo me-auto" to="/" onClick={handleNavClick}>
-              CINESOFT
-            </Link>
-
-            {/* Espacio y botones de la derecha */}
-            <div className="d-flex align-items-center ms-auto">
-              {/* Icono registro/inicio sesión */}
-              <Link 
-                to="/auth" 
-                className="btn-link icon-btn" 
-                aria-label="Iniciar sesión / Registrarse" 
-                style={{ gap: '8px' }}
-                onClick={handleNavClick}
-              >
-                {/* icono simple de usuario (SVG) */}
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
-                  <path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H3z"/>
-                  <path fillRule="evenodd" d="M8 8a3 3 0 100-6 3 3 0 000 6z"/>
-                </svg>
-                <span className="d-none d-sm-inline"></span>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar cartCount={reservations.length} showCartBadge={true} />
 
       <div className="detalle-container">
         <div className="detalle-card">
@@ -607,20 +595,13 @@ function DetallePelicula() {
                     // Buscar la función seleccionada para obtener su ID
                     let funcionId = peliculaId; // Fallback al ID de película
                     
-                    console.log('[DetallePelicula] Construyendo URL para navegación');
-                    console.log('[DetallePelicula] availableTimes:', availableTimes);
-                    console.log('[DetallePelicula] selectedTime:', selectedTime);
-                    
                     if (availableTimes && selectedTime) {
                       const funcionSeleccionada = availableTimes.find(f => 
                         (typeof f === 'object' ? f.hora : f) === selectedTime
                       );
-                      console.log('[DetallePelicula] funcionSeleccionada:', funcionSeleccionada);
                       
                       if (funcionSeleccionada && typeof funcionSeleccionada === 'object') {
-                        // Usar el ID de la función si está disponible
                         funcionId = funcionSeleccionada.funcionId || funcionSeleccionada._id || peliculaId;
-                        console.log('[DetallePelicula] funcionId extraído:', funcionId);
                       }
                     }
                     
@@ -646,9 +627,7 @@ function DetallePelicula() {
                       }
                     }
                     
-                    const finalUrl = `${baseUrl}?${params.toString()}`;
-                    console.log('[DetallePelicula] URL final:', finalUrl);
-                    return finalUrl;
+                    return `${baseUrl}?${params.toString()}`;
                   })()} 
                   
                   className={`btn btn-lg ${!selectedDay || !selectedTime ? 'btn-secondary disabled' : 'btn-success'}`}

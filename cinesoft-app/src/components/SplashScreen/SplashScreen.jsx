@@ -1,21 +1,21 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import './SplashScreen.css';
 
-const SplashScreen = () => {
+const SplashScreen = ({ onComplete }) => {
   const [isAnimating, setIsAnimating] = useState(true);
-  const navigate = useNavigate();
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsAnimating(false);
       setTimeout(() => {
-        navigate('/cartelera');
-      }, 1000);
-    }, 3000);
+        if (onComplete) {
+          onComplete();
+        }
+      }, 1000); // 1 segundo para el fade out
+    }, 4000); // 4 segundos de animación
 
     return () => clearTimeout(timer);
-  }, [navigate]);
+  }, [onComplete]);
 
   return (
     <div className={`splash-screen ${!isAnimating ? 'fade-out' : ''}`}>

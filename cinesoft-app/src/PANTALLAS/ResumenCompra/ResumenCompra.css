@@ -1,19 +1,40 @@
 .resumen-container {
   min-height: 100vh;
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  padding-top: 70px;
+  padding-top: 90px; /* Ajustado para mejor espaciado */
   color: #fff;
 }
 
 .content-wrapper {
-  padding-bottom: 60px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-top: 32px;
+  padding-bottom: 32px;
+  padding-left: 16px;
+  padding-right: 16px;
 }
 
+@media (max-width: 991.98px) {
+  .content-wrapper {
+    max-width: 100%;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+    .row.g-0 {
+      flex-direction: column;
+    }
+    .col-lg-7, .col-lg-5 {
+      width: 100%;
+      max-width: 100%;
+      margin-bottom: 2rem;
+    }
+}
 /* Cards */
 .card {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  margin-top: 16px;
 }
 
 .card-header {
@@ -71,6 +92,51 @@
 }
 
 /* Desglose de pago (sticky card) */
+.desglose-pago {
+  position: relative;
+  top: 0;
+  height: auto;
+  min-width: 260px;
+  max-width: 380px;
+  width: 100%;
+  margin-left: 16px;
+}
+
+.desglose-pago .card-body {
+  padding: 1.25rem;
+}
+
+.desglose-pago .d-flex {
+  margin-bottom: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+}
+
+.desglose-pago .d-flex span:first-child {
+  flex-shrink: 0;
+  margin-right: 1rem;
+}
+
+.desglose-pago .d-flex span:last-child {
+  font-weight: 500;
+  white-space: nowrap;
+  text-align: right;
+  min-width: fit-content;
+}
+
+.desglose-pago .border-bottom {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.desglose-pago .total-final {
+  background: rgba(40, 167, 69, 0.15);
+  padding: 1rem;
+  border-radius: 8px;
+  border: 2px solid #28a745;
+  margin-bottom: 1rem;
+}
+
 .sticky-top {
   position: sticky;
 }
@@ -82,6 +148,40 @@
   border: 2px solid #28a745;
 }
 
+/* Responsive para desglose */
+@media (max-width: 991.98px) {
+  .desglose-pago {
+    position: static;
+    margin-top: 2rem;
+    max-height: none;
+    min-width: auto;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .content-wrapper {
+    max-width: 100%;
+    padding-left: 8px;
+    padding-right: 8px;
+    padding-top: 16px;
+  }
+  .row.g-0 {
+    flex-direction: column;
+  }
+  .col-lg-7, .col-lg-5 {
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 2rem;
+  }
+  .desglose-pago {
+    margin-left: 0;
+    top: 0;
+    height: auto;
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+  }
+}
 /* Badges */
 .badge {
   font-weight: 500;
@@ -125,6 +225,14 @@
 /* Navbar */
 .navbar {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  height: 56px; /* Altura estándar de Bootstrap navbar */
+}
+
+/* Desglose de pago sticky */
+.desglose-pago {
+  position: sticky;
+  top: 70px;
+  z-index: 10;
 }
 
 .logo {
