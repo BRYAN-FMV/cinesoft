@@ -1,9 +1,6 @@
 /* Header */
 .productos-header {
-    background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.9)),
-                url('/ruta-a-tu-imagen-header.jpg');
-    background-size: cover;
-    background-position: center;
+    background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.9));
     color: white;
     padding: 4rem 0;
     text-align: center;

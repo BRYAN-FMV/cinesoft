@@ -77,5 +77,3 @@ export const useAuth = () => {
     loading 
   }
 }
-
-export default useAuth

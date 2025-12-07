@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../../context/CartContext.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
+import Navbar from '../../components/Navbar/Navbar';
 import './ResumenCompra.css';
 
 function ResumenCompra() {
@@ -47,6 +48,11 @@ function ResumenCompra() {
 
   const desglose = calcularDesglose();
 
+  // Debug para verificar cálculos
+  console.log('Desglose calculado:', desglose);
+  console.log('Reservations:', reservations);
+  console.log('Products:', products);
+
   // Función para generar número de confirmación
   const generarNumeroConfirmacion = () => {
     const timestamp = Date.now().toString().slice(-6);
@@ -70,6 +76,41 @@ function ResumenCompra() {
     setProcesando(true);
 
     try {
+      // Validar disponibilidad de asientos antes de procesar
+      if (reservations.length > 0) {
+        console.log('Validando disponibilidad de asientos...');
+        for (const reserva of reservations) {
+          try {
+            const response = await fetch(`https://cine-web-api-tobi.vercel.app/api/funciones/${reserva.funcionId}/asientos`, {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            });
+            
+            if (response.ok) {
+              const asientosActuales = await response.json();
+              
+              // Verificar cada asiento seleccionado
+              for (const asientoSeleccionado of reserva.selectedSeats) {
+                const asientoId = asientoSeleccionado._id || asientoSeleccionado;
+                const asientoActual = asientosActuales.find(a => a._id === asientoId);
+                
+                if (!asientoActual || asientoActual.estado !== 'disponible') {
+                  throw new Error(`El asiento ${asientoSeleccionado.codigo || asientoId} ya no está disponible. Por favor, selecciona otros asientos.`);
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Error validando asientos:', error);
+            if (error.message.includes('ya no está disponible')) {
+              throw error; // Re-lanzar errores de disponibilidad
+            }
+            // Continuar si es un error de red, pero mostrar advertencia
+            console.warn('No se pudo validar la disponibilidad, continuando...');
+          }
+        }
+      }
+
       // Construir el array de detalles (entradas y productos)
       const detalles = [];
 
@@ -123,9 +164,16 @@ function ResumenCompra() {
       }
 
       const ventaEnc = await responseEnc.json();
-      const ventaEncId = ventaEnc._id || ventaEnc.id;
+      console.log('Respuesta ventaEnc:', ventaEnc);
+      const ventaEncId = ventaEnc.venta?._id || ventaEnc._id || ventaEnc.id;
+      console.log('VentaEncId extraído:', ventaEncId);
+
+      if (!ventaEncId) {
+        throw new Error('No se pudo obtener el ID del encabezado de venta');
+      }
 
       // 2. Crear cada detalle asociado al encabezado
+      console.log('Creando', detalles.length, 'detalles para ventaEncId:', ventaEncId);
       for (const detalle of detalles) {
         const detalleData = {
           ventaEnc: ventaEncId,
@@ -139,8 +187,18 @@ function ResumenCompra() {
           },
           body: JSON.stringify(detalleData)
         });
+        
+        console.log('Response status:', responseDet.status);
+        const responseText = await responseDet.text();
+        console.log('Response text:', responseText);
+        
         if (!responseDet.ok) {
-          const errorDet = await responseDet.json();
+          let errorDet;
+          try {
+            errorDet = JSON.parse(responseText);
+          } catch (e) {
+            errorDet = { message: responseText };
+          }
           console.error('Detalle con error:', detalleData, errorDet);
           throw new Error(errorDet.message || 'Error al crear el detalle de venta');
         }
@@ -150,19 +208,31 @@ function ResumenCompra() {
       const confirmacion = generarNumeroConfirmacion();
       setNumeroConfirmacion(confirmacion);
 
-      // Mostrar modal de éxito en lugar del alert
+      // Mostrar modal de éxito
       setShowSuccessModal(true);
-      clearCart();
 
-      // Redirigir automáticamente después de 8 segundos
+      // Redirigir automáticamente después de 3 segundos y LUEGO limpiar carrito
       setTimeout(() => {
         setShowSuccessModal(false);
+        clearCart();
         navigate('/cartelera');
-      }, 8000);
+      }, 3000);
 
     } catch (error) {
       console.error('Error al procesar el pago:', error);
-      alert(`Error al procesar el pago: ${error.message}`);
+      
+      // Manejar errores específicos
+      let mensajeError = error.message;
+      
+      if (error.message.includes('Asiento en estado: ocupado')) {
+        mensajeError = 'Uno o más asientos seleccionados ya han sido reservados por otro usuario. Por favor, regresa al mapa de asientos y selecciona otros lugares disponibles.';
+      } else if (error.message.includes('ya no está disponible')) {
+        mensajeError = error.message; // Ya es un mensaje claro de la validación previa
+      } else if (error.message.includes('Error al crear')) {
+        mensajeError = 'Hubo un problema al procesar tu reserva. Por favor, intenta nuevamente.';
+      }
+      
+      alert(`Error en la compra: ${mensajeError}`);
     } finally {
       setProcesando(false);
     }
@@ -171,13 +241,7 @@ function ResumenCompra() {
   if (reservations.length === 0 && products.length === 0) {
     return (
       <div className="resumen-container">
-        <nav className="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
-          <div className="container-fluid">
-            <div className="container align-items-center d-flex">
-              <Link className="navbar-brand logo" to="/cartelera">CINESOFT</Link>
-            </div>
-          </div>
-        </nav>
+        <Navbar variant="fixed" />
 
         <div className="container content-wrapper text-center">
           <div className="alert alert-warning mt-5">
@@ -195,32 +259,17 @@ function ResumenCompra() {
   return (
     <div className="resumen-container">
       {/* Navbar */}
-      <nav className="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
-        <div className="container-fluid">
-          <div className="container align-items-center d-flex">
-            <div className="me-3">
-              <button 
-                onClick={() => navigate(-1)} 
-                className="btn btn-outline-light btn-sm"
-              >
-                ← Atrás
-              </button>
-            </div>
-            <Link className="navbar-brand logo me-auto" to="/cartelera">CINESOFT</Link>
-            <div className="d-flex align-items-center ms-auto">
-              <span className="text-white me-3">
-                {user?.name || 'Usuario'}
-              </span>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar 
+        cartCount={reservations.length + products.length} 
+        showCartBadge={true} 
+        variant="fixed" 
+      />
 
       {/* Contenido principal */}
-      <div className="container content-wrapper">
-        <div className="row mt-5 pt-4">
+      <div className="container-fluid content-wrapper">
+        <div className="row g-0 d-flex align-items-start">
           {/* Columna izquierda - Detalles de reservas */}
-          <div className="col-lg-8">
+          <div className="col-lg-7 col-12">
             <div className="card bg-dark text-white mb-4">
               <div className="card-header">
                 <h4 className="mb-0">
@@ -340,8 +389,8 @@ function ResumenCompra() {
           </div>
 
           {/* Columna derecha - Desglose de costos */}
-          <div className="col-lg-4">
-            <div className="card bg-dark text-white sticky-top" style={{ top: '80px' }}>
+          <div className="col-lg-5 col-12">
+            <div className="card bg-dark text-white desglose-pago sticky-top">
               <div className="card-header bg-danger">
                 <h5 className="mb-0">
                   <i className="bi bi-receipt me-2"></i>
@@ -361,16 +410,16 @@ function ResumenCompra() {
                 {/* Resumen de ítems */}
                 <div className="mb-3 pb-3 border-bottom">
                   <div className="d-flex justify-content-between mb-2">
-                    <span>Total de reservas:</span>
+                    <span>Reservas:</span>
                     <span className="fw-bold">{reservations.length}</span>
                   </div>
                   <div className="d-flex justify-content-between mb-2">
-                    <span>Total de asientos:</span>
+                    <span>Asientos:</span>
                     <span className="fw-bold">{desglose.totalAsientos}</span>
                   </div>
                   {products.length > 0 && (
                     <div className="d-flex justify-content-between">
-                      <span>Total de productos:</span>
+                      <span>Productos:</span>
                       <span className="fw-bold">{products.length}</span>
                     </div>
                   )}
@@ -379,17 +428,17 @@ function ResumenCompra() {
                 {/* Desglose de costos */}
                 <div className="mb-3 pb-3 border-bottom">
                   <div className="d-flex justify-content-between mb-2">
-                    <span>Subtotal boletos:</span>
+                    <span>Boletos:</span>
                     <span>${desglose.subtotalReservas.toFixed(2)}</span>
                   </div>
                   {products.length > 0 && (
                     <div className="d-flex justify-content-between mb-2">
-                      <span>Subtotal productos:</span>
+                      <span>Productos:</span>
                       <span>${desglose.subtotalProductos.toFixed(2)}</span>
                     </div>
                   )}
                   <div className="d-flex justify-content-between mb-2 fw-bold">
-                    <span>Subtotal general:</span>
+                    <span>Subtotal:</span>
                     <span>${desglose.subtotalGeneral.toFixed(2)}</span>
                   </div>
                   <hr className="my-2" />
@@ -448,96 +497,44 @@ function ResumenCompra() {
         </div>
       </div>
 
-      {/* Modal de confirmación de pago exitoso - MEJORADO */}
+      {/* Modal de éxito simple */}
       {showSuccessModal && (
         <div className="modal-overlay">
           <div className="success-modal">
-            <div className="success-modal-content">
-              <div className="success-icon">
-                <i className="bi bi-check-circle-fill"></i>
+            <div className="success-modal-content text-center">
+              <div className="success-icon mb-3">
+                <i className="bi bi-check-circle-fill text-success" style={{fontSize: '4rem'}}></i>
               </div>
               
-              <h2 className="success-title">¡Compra Exitosa!</h2>
+              <h2 className="success-title text-success mb-3">¡Compra Exitosa!</h2>
               
-              <div className="confirmation-badge">
-                <span className="confirmation-number">{numeroConfirmacion}</span>
-              </div>
-
-              <p className="success-message">
-                Tu compra ha sido procesada correctamente. 
-                <strong> Recibirás un correo electrónico</strong> con todos los detalles 
-                de tu pedido y los boletos para la función.
+              <p className="success-message mb-4">
+                Tu compra se procesó correctamente.<br/>
+                <strong>Total pagado: ${desglose.totalFinal.toFixed(2)}</strong>
               </p>
-
-              <div className="success-details">
-                <div className="detail-item">
-                  <span className="detail-label">Cliente:</span>
-                  <span className="detail-value">{user?.name}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Email:</span>
-                  <span className="detail-value">{user?.email}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Fecha de compra:</span>
-                  <span className="detail-value">{new Date().toLocaleDateString()}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Total de reservas:</span>
-                  <span className="detail-value">{reservations.length}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Total de productos:</span>
-                  <span className="detail-value">{products.length}</span>
-                </div>
-                <div className="detail-item total">
-                  <span className="detail-label">Monto total pagado:</span>
-                  <span className="detail-value">${desglose.totalFinal.toFixed(2)}</span>
-                </div>
-              </div>
-
-              <div className="success-instructions">
-                <h6 className="instructions-title">
-                  <i className="bi bi-info-circle me-2"></i>
-                  ¿Qué sigue?
-                </h6>
-                <ul className="instructions-list">
-                  <li>Revisa tu correo electrónico para obtener tus boletos</li>
-                  <li>Presenta tu código QR al ingresar al cine</li>
-                  <li>Llega 30 minutos antes de la función</li>
-                  <li>Disfruta de tu película y snacks</li>
-                </ul>
-              </div>
 
               <div className="success-actions">
                 <button 
-                  className="btn btn-primary"
+                  className="btn btn-primary me-3"
                   onClick={() => {
                     setShowSuccessModal(false);
+                    clearCart();
                     navigate('/cartelera');
                   }}
                 >
-                  <i className="bi bi-film me-2"></i>
-                  Ver Más Películas
+                  Continuar
                 </button>
                 
                 <button 
                   className="btn btn-outline-light"
                   onClick={() => {
                     setShowSuccessModal(false);
-                    navigate('/mis-reservas');
+                    clearCart();
+                    navigate('/mis-compras');
                   }}
                 >
-                  <i className="bi bi-ticket-perforated me-2"></i>
-                  Mis Reservas
+                  Ver mis compras
                 </button>
-              </div>
-
-              <div className="success-footer">
-                <small className="text-secondary">
-                  <i className="bi bi-clock me-1"></i>
-                  Serás redirigido automáticamente en 8 segundos
-                </small>
               </div>
             </div>
           </div>
