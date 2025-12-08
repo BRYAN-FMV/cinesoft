@@ -6,7 +6,6 @@ import SplashScreen from './components/SplashScreen/SplashScreen.jsx';
 import Cartelera from './PANTALLAS/Cartelera/cartelera.jsx'
 import DetallePelicula from './PANTALLAS/DetallePelicula/DetallePelicula.jsx'; 
 import MapaAsientos from './PANTALLAS/MapaAsientos/MapaAsientos.jsx';
-import Boletos from './PANTALLAS/Boletos/Boletos.jsx';
 import ResumenCompra from './PANTALLAS/ResumenCompra/ResumenCompra.jsx';
 import DetalleVenta from './PANTALLAS/DetalleVenta/DetalleVenta.jsx';
 import MisCompras from './PANTALLAS/MisCompras/MisCompras.jsx';
@@ -37,7 +36,6 @@ function App() {
       <Route path="/cartelera" element={<Cartelera />} />
       <Route path="/detalle/:id" element={<DetallePelicula />} />
       <Route path="/asientos/:id" element={<MapaAsientos />} />
-      <Route path="/boletos/:id" element={<Boletos />} />
       <Route path="/resumen" element={<ResumenCompra />} />
       <Route path="/mis-compras" element={<MisCompras />} />
       <Route path="/login" element={<Login />} />
