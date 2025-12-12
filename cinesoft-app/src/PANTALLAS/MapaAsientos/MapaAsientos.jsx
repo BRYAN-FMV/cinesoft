@@ -45,7 +45,7 @@ function MapaAsientos() {
   const endpointUrl = `https://cine-web-api-tobi.vercel.app/api/funciones/${funcionId}/asientos`;
   console.log('[MapaAsientos] Consultando endpoint:', endpointUrl);
   
-  const { data: asientosData, loading, error } = useFetch(endpointUrl);
+  const { data: asientosData, loading, error, refetch: refetchSeats } = useFetch(endpointUrl);
 
   // Debug adicional para verificar el estado del hook useFetch
   useEffect(() => {
@@ -166,36 +166,18 @@ function MapaAsientos() {
     console.log('[MapaAsientos] === FIN DEBUG ===');
   }, [asientosData]);
 
-  // Función para refrescar estado de asientos
-  const refreshSeatsState = async () => {
-    try {
-      console.log('[MapaAsientos] Refrescando estado de asientos para función:', funcionId);
-      const response = await fetch(`https://cine-web-api-tobi.vercel.app/api/funciones/${funcionId}/asientos`);
-      if (response.ok) {
-        const freshData = await response.json();
-        console.log('[MapaAsientos] Asientos actualizados desde servidor:', freshData);
-        
-        // Forzar re-procesamiento de datos actualizados
-        if (freshData && Object.keys(freshData).length > 0) {
-          // Llamar directamente al useEffect que procesa los datos
-          console.log('[MapaAsientos] Forzando actualización con datos frescos');
-          // Simular cambio en asientosData para que se dispare el useEffect
-          setRefreshSeats(prev => prev + 1);
-          
-          // TODO: Aquí deberíamos actualizar asientosData directamente, pero por ahora forzamos refresh
-          window.location.reload(); // Reload temporal hasta arreglar el state management
-        }
-      }
-    } catch (error) {
-      console.error('[MapaAsientos] Error al refrescar asientos:', error);
-    }
-  };
-
-  // Auto-refresh cada 30 segundos para mantener sincronizado el estado
-  useEffect(() => {
-    const interval = setInterval(refreshSeatsState, 30000);
-    return () => clearInterval(interval);
-  }, [funcionId]);
+  // Función para refrescar estado de asientos (ya no se usa)
+  // const refreshSeatsState = async () => {
+  //   try {
+  //     console.log('[MapaAsientos] Refrescando estado de asientos para función:', funcionId);
+  //     if (refetchSeats) {
+  //       await refetchSeats();
+  //       console.log('[MapaAsientos] Datos de asientos refrescados exitosamente');
+  //     }
+  //   } catch (error) {
+  //     console.error('[MapaAsientos] Error al refrescar asientos:', error);
+  //   }
+  // };
 
   // Extraer información de la sala desde los datos del backend
   useEffect(() => {
@@ -348,23 +330,32 @@ function MapaAsientos() {
 
           let btnClass = 'btn seat-button';
           let isDisabled = false;
+          const estadoAsiento = asiento.estado || 'desconocido';
           
           // Debug del estado del asiento  
           console.log(`[MapaAsientos] Asiento ${seatId}:`, {
-            estado: asiento.estado,
+            estado: estadoAsiento,
             estadoOriginal: asiento.originalData?.estadoFuncion,
             ocupado: isOccupied,
             seleccionado: isSelected
           });
           
-          // Verificar si está ocupado (vendido, reservado, etc)
-          if (isOccupied || asiento.estado === 'vendido' || asiento.estado === 'reservado') {
+          // Determinar clase según estado de la BD
+          // Estados: 'disponible' (azul), 'vendido' (rojo), 'reservado' (rojo)
+          if (estadoAsiento === 'vendido' || estadoAsiento === 'reservado') {
+            // Asiento no disponible (rojo oscuro)
             btnClass += ' btn-danger disabled';
             isDisabled = true;
           } else if (isSelected) {
+            // Asiento seleccionado por el usuario (verde)
             btnClass += ' btn-success';
-          } else {
+          } else if (estadoAsiento === 'disponible' || !isOccupied) {
+            // Asiento disponible (azul)
             btnClass += ' btn-primary';
+          } else {
+            // Fallback para estados desconocidos
+            btnClass += ' btn-danger disabled';
+            isDisabled = true;
           }
 
           const spacingElement =
@@ -477,17 +468,7 @@ function MapaAsientos() {
             <div className="text-white mt-4 legend-container">
               <div className="seat-legend"><span className="seat-color bg-primary"></span>Disponible</div>
               <div className="seat-legend"><span className="seat-color bg-success"></span>Seleccionado</div>
-              <div className="seat-legend"><span className="seat-color bg-danger"></span>Ocupado</div>
-            </div>
-
-            {/* Info de debug */}
-            <div className="mt-3">
-              <small className="text-secondary">
-                🔍 Debug: función {funcionId} | {Object.keys(asientosReal).length} asientos cargados
-                {process.env.NODE_ENV === 'development' && (
-                  <><br/>endpoint: {endpointUrl}</>
-                )}
-              </small>
+              <div className="seat-legend"><span className="seat-color bg-danger"></span>Vendido/Reservado</div>
             </div>
 
             {/* Mensaje de alerta */}

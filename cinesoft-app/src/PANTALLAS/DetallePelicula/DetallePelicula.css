@@ -283,6 +283,7 @@
 .times-grid {
   display: flex;
   gap: 8px;
+  color: black;
   flex-wrap: wrap;
   margin: 0.5rem 0 1rem 0;
   align-items: center;
@@ -702,4 +703,21 @@
   .movie-card {
     max-width: 100%;
   }
+}
+
+/* Mensaje de no funciones programadas */
+.no-functions-message {
+  color: #ffffff; /* Cambiar a blanco para mejor contraste */
+  font-weight: 600;
+}
+
+.no-functions-message p {
+  color: #f0f0f0; /* Subtítulos en gris claro */
+  font-size: 1rem;
+}
+
+.alert-info {
+  background-color: #003366 !important; /* Fondo azul oscuro */
+  color: #ffffff !important; /* Texto blanco */
+  border: none; /* Eliminar bordes */
 }

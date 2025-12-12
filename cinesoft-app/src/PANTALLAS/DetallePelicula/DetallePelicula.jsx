@@ -548,8 +548,7 @@ function DetallePelicula() {
                   ) : !loadingHorarios && !errorHorarios && horariosPorDia && Object.keys(horariosPorDia).length === 0 ? (
                     <div className="alert alert-info">
                       <h6>📅 No hay funciones programadas</h6>
-                      <p className="mb-0">Esta película aún no tiene funciones programadas. <br />
-                      <small>Los horarios se mostrarán cuando el administrador configure las funciones.</small></p>
+                      <p className="mb-0">Esta película aún no tiene funciones programadas. <br /></p>
                     </div>
                   ) : (
                     <div>No hay horarios para este día.</div>

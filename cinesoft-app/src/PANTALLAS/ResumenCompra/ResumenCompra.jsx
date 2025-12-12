@@ -73,6 +73,8 @@ function ResumenCompra() {
       return;
     }
 
+    console.log('Token disponible:', !!token);
+    console.log('User:', user);
     setProcesando(true);
 
     try {
@@ -88,14 +90,25 @@ function ResumenCompra() {
             });
             
             if (response.ok) {
-              const asientosActuales = await response.json();
+              const data = await response.json();
+              
+              // El backend devuelve { funcion, mapa: { A: [...], B: [...] }, resumen }
+              // Extraer todos los asientos del mapa por filas
+              let asientosActuales = [];
+              if (data.mapa && typeof data.mapa === 'object') {
+                Object.values(data.mapa).forEach(filaAsientos => {
+                  if (Array.isArray(filaAsientos)) {
+                    asientosActuales.push(...filaAsientos);
+                  }
+                });
+              }
               
               // Verificar cada asiento seleccionado
               for (const asientoSeleccionado of reserva.selectedSeats) {
                 const asientoId = asientoSeleccionado._id || asientoSeleccionado;
                 const asientoActual = asientosActuales.find(a => a._id === asientoId);
                 
-                if (!asientoActual || asientoActual.estado !== 'disponible') {
+                if (!asientoActual || asientoActual.estadoFuncion !== 'disponible') {
                   throw new Error(`El asiento ${asientoSeleccionado.codigo || asientoId} ya no está disponible. Por favor, selecciona otros asientos.`);
                 }
               }
@@ -158,9 +171,23 @@ function ResumenCompra() {
         body: JSON.stringify(ventaEncData)
       });
 
+      console.log('Response status ventaEnc:', responseEnc.status);
+      
       if (!responseEnc.ok) {
-        const errorData = await responseEnc.json();
-        throw new Error(errorData.message || 'Error al crear la venta');
+        let errorMessage = 'Error al crear la venta';
+        try {
+          const errorData = await responseEnc.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          const errorText = await responseEnc.text();
+          errorMessage = errorText || errorMessage;
+        }
+        console.error('Error en ventaEnc:', responseEnc.status, errorMessage);
+        
+        if (responseEnc.status === 401) {
+          throw new Error('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+        }
+        throw new Error(errorMessage);
       }
 
       const ventaEnc = await responseEnc.json();
@@ -224,7 +251,12 @@ function ResumenCompra() {
       // Manejar errores específicos
       let mensajeError = error.message;
       
-      if (error.message.includes('Asiento en estado: ocupado')) {
+      if (error.message.includes('sesión ha expirado')) {
+        mensajeError = error.message;
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
+      } else if (error.message.includes('Asiento en estado: ocupado')) {
         mensajeError = 'Uno o más asientos seleccionados ya han sido reservados por otro usuario. Por favor, regresa al mapa de asientos y selecciona otros lugares disponibles.';
       } else if (error.message.includes('ya no está disponible')) {
         mensajeError = error.message; // Ya es un mensaje claro de la validación previa
